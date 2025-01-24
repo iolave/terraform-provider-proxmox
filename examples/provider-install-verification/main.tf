@@ -23,3 +23,11 @@ data "proxmox_version" "example" {
 output "example_version" {
   value = data.proxmox_version.example
 }
+
+data "proxmox_node_firewall_rules" "node_fw_rules" {
+  node = ""
+}
+
+output "node_fw_rules" {
+  value = data.proxmox_node_firewall_rules.node_fw_rules
+}

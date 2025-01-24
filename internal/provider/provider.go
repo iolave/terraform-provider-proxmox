@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"strconv"
+	nodefirewall "terraform-provider-proxmox/internal/provider/node_firewall"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -342,6 +343,7 @@ func (p *proxmoxProvider) Configure(ctx context.Context, req provider.ConfigureR
 func (p *proxmoxProvider) DataSources(_ context.Context) []func() datasource.DataSource {
 	return []func() datasource.DataSource{
 		NewVersionDataSource,
+		nodefirewall.NewRulesDataSource,
 	}
 }
 
