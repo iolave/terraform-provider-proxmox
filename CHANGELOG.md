@@ -10,3 +10,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - proxmox_version data source.
 - proxmox_node_firewall_rules data source. 
 - proxmox_node_firewall_rules resource. 
+- proxmox_node_firewall_rule resource. 

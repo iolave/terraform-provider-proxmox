@@ -38,16 +38,36 @@ resource "proxmox_node_firewall_rules" "example" {
     {
       action      = "ACCEPT"
       type        = "in"
-      comment     = "TF_CREATED"
+      comment     = "TF_CREATED first"
       macro       = "SSH"
       destination = "dc/pve-prd-1-local"
     },
     {
       action      = "ACCEPT"
       type        = "in"
-      comment     = "TF_CREATED"
+      comment     = "TF_CREATED second"
       macro       = "SSH"
       destination = "dc/pve-prd-1-local"
     }
   ]
 }
+
+resource "proxmox_node_firewall_rule" "example_new" {
+  node        = "pve-prd-1"
+  action      = "ACCEPT"
+  type        = "in"
+  comment     = "TF_CREATED 1st"
+  macro       = "SSH"
+  destination = "dc/pve-prd-1-local"
+}
+
+resource "proxmox_node_firewall_rule" "example" {
+  depends_on  = [proxmox_node_firewall_rule.example_new]
+  node        = "pve-prd-1"
+  action      = "ACCEPT"
+  type        = "in"
+  comment     = "TF_CREATED 2nd"
+  macro       = "SSH"
+  destination = "dc/pve-prd-1-local"
+}
+
