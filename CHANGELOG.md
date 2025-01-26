@@ -7,5 +7,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [unreleased]
 ### Added
-- Proxmox version data source.
-- Node firewall rules data source. 
+- proxmox_version data source.
+- proxmox_node_firewall_rules data source. 
+- proxmox_node_firewall_rules resource. 

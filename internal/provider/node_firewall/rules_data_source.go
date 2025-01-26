@@ -17,10 +17,6 @@ var (
 	_ datasource.DataSourceWithConfigure = &rulesDataSource{}
 )
 
-const (
-	DATA_SOURCE_NAME = "node_firewall_rules"
-)
-
 // NewCoffeesDataSource is a helper function to simplify the provider implementation.
 func NewRulesDataSource() datasource.DataSource {
 	return &rulesDataSource{}
@@ -33,16 +29,18 @@ type rulesDataSource struct {
 
 // Metadata returns the data source type name.
 func (d *rulesDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
-	resp.TypeName = fmt.Sprintf("%s_%s", req.ProviderTypeName, DATA_SOURCE_NAME)
+	name := "node_firewall_rules"
+	resp.TypeName = fmt.Sprintf("%s_%s", req.ProviderTypeName, name)
 }
 
 func (d *rulesDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	ruleSchema := schema.NestedAttributeObject{
 		Attributes: map[string]schema.Attribute{
+			"id":          schema.StringAttribute{Computed: true},
 			"action":      schema.StringAttribute{Computed: true},
 			"comment":     schema.StringAttribute{Computed: true},
 			"destination": schema.StringAttribute{Computed: true},
-			"dport":       schema.StringAttribute{Computed: true},
+			"dport":       schema.Int64Attribute{Computed: true},
 			"enable":      schema.BoolAttribute{Computed: true},
 			"icmp_type":   schema.StringAttribute{Computed: true},
 			"iface":       schema.StringAttribute{Computed: true},
@@ -89,10 +87,11 @@ func (d *rulesDataSource) Read(ctx context.Context, req datasource.ReadRequest, 
 	for _, r := range rules {
 		rule := ruleModel{}
 
+		rule.ID = types.StringValue(r.ID)
 		rule.Action = types.StringValue(r.Action)
 		rule.Comment = types.StringValue(r.Comment)
 		rule.Destination = types.StringValue(r.Destination)
-		rule.DestinationPort = types.StringValue(r.DestinationPort)
+		rule.DestinationPort = types.Int64Value(int64(r.DestinationPort))
 		switch r.Enable {
 		case 0:
 			rule.Enable = types.BoolValue(false)
@@ -156,10 +155,11 @@ type rulesDataSourceModel struct {
 
 // rulesModel maps rule schema data.
 type ruleModel struct {
+	ID              types.String `tfsdk:"id"`
 	Action          types.String `tfsdk:"action"`
 	Comment         types.String `tfsdk:"comment"`
 	Destination     types.String `tfsdk:"destination"`
-	DestinationPort types.String `tfsdk:"dport"`
+	DestinationPort types.Int64  `tfsdk:"dport"`
 	Enable          types.Bool   `tfsdk:"enable"`
 	ICMPType        types.String `tfsdk:"icmp_type"`
 	Interface       types.String `tfsdk:"iface"`

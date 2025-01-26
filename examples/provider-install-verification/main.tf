@@ -17,17 +17,37 @@ provider "proxmox" {
   insecure_skip_verify = true
 }
 
-data "proxmox_version" "example" {
-}
+// data "proxmox_version" "example" {
+// }
+// 
+// output "example_version" {
+//   value = data.proxmox_version.example
+// }
+// 
+// data "proxmox_node_firewall_rules" "node_fw_rules" {
+//   node = "pve-prd-1"
+// }
+// 
+// output "node_fw_rules" {
+//   value = data.proxmox_node_firewall_rules.node_fw_rules
+// }
 
-output "example_version" {
-  value = data.proxmox_version.example
-}
-
-data "proxmox_node_firewall_rules" "node_fw_rules" {
-  node = ""
-}
-
-output "node_fw_rules" {
-  value = data.proxmox_node_firewall_rules.node_fw_rules
+resource "proxmox_node_firewall_rules" "example" {
+  node = "pve-prd-1"
+  rules = [
+    {
+      action      = "ACCEPT"
+      type        = "in"
+      comment     = "TF_CREATED"
+      macro       = "SSH"
+      destination = "dc/pve-prd-1-local"
+    },
+    {
+      action      = "ACCEPT"
+      type        = "in"
+      comment     = "TF_CREATED"
+      macro       = "SSH"
+      destination = "dc/pve-prd-1-local"
+    }
+  ]
 }
