@@ -41,42 +41,52 @@ func (r *RulesResource) Metadata(ctx context.Context, req resource.MetadataReque
 }
 
 func (r *RulesResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
+
 	ruleSchema := schema.NestedAttributeObject{
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
 				Computed:    true,
-				Description: "go-proxmox generated id that lives within the rule comment field in proxmox",
+				Description: DESC_RULE_ID,
 			},
-			"action": schema.StringAttribute{Required: true},
+			"action": schema.StringAttribute{
+				Required:    true,
+				Description: DESC_RULE_ACTION,
+			},
 			"comment": schema.StringAttribute{
-				Computed: true,
-				Optional: true,
-				Default:  stringdefault.StaticString(""),
+				Computed:    true,
+				Optional:    true,
+				Default:     stringdefault.StaticString(""),
+				Description: DESC_RULE_COMMENT,
 			},
 			"destination": schema.StringAttribute{
-				Computed: true,
-				Optional: true,
-				Default:  stringdefault.StaticString(""),
+				Computed:    true,
+				Optional:    true,
+				Default:     stringdefault.StaticString(""),
+				Description: DESC_RULE_DEST,
 			},
 			"dport": schema.Int64Attribute{
-				Computed: true,
-				Optional: true,
-				Default:  int64default.StaticInt64(0),
+				Computed:    true,
+				Optional:    true,
+				Default:     int64default.StaticInt64(0),
+				Description: DESC_RULE_DPORT,
 			},
 			"enable": schema.BoolAttribute{
-				Computed: true,
-				Optional: true,
-				Default:  booldefault.StaticBool(false),
+				Computed:    true,
+				Optional:    true,
+				Default:     booldefault.StaticBool(false),
+				Description: DESC_RULE_ENABLE,
 			},
 			"icmp_type": schema.StringAttribute{
-				Computed: true,
-				Optional: true,
-				Default:  stringdefault.StaticString(""),
+				Computed:    true,
+				Optional:    true,
+				Default:     stringdefault.StaticString(""),
+				Description: DESC_RULE_ICMP,
 			},
 			"iface": schema.StringAttribute{
-				Computed: true,
-				Optional: true,
-				Default:  stringdefault.StaticString(""),
+				Computed:    true,
+				Optional:    true,
+				Default:     stringdefault.StaticString(""),
+				Description: DESC_RULE_IFACE,
 			},
 			"ip_version": schema.Int64Attribute{
 				Computed: true,
@@ -84,35 +94,44 @@ func (r *RulesResource) Schema(ctx context.Context, req resource.SchemaRequest, 
 				Default:  int64default.StaticInt64(4),
 			},
 			"log": schema.StringAttribute{
-				Computed: true,
-				Optional: true,
-				Default:  stringdefault.StaticString(""),
+				Computed:    true,
+				Optional:    true,
+				Default:     stringdefault.StaticString(""),
+				Description: DESC_RULE_LOG,
 			},
 			"macro": schema.StringAttribute{
-				Computed: true,
-				Optional: true,
-				Default:  stringdefault.StaticString(""),
+				Computed:    true,
+				Optional:    true,
+				Default:     stringdefault.StaticString(""),
+				Description: DESC_RULE_MACRO,
 			},
 			// FIXME: POS NOT WORKING
 			"pos": schema.Int64Attribute{
-				Optional: true,
+				Optional:    true,
+				Description: DESC_RULE_POS,
 			},
 			"proto": schema.StringAttribute{
-				Computed: true,
-				Optional: true,
-				Default:  stringdefault.StaticString(""),
+				Computed:    true,
+				Optional:    true,
+				Default:     stringdefault.StaticString(""),
+				Description: DESC_RULE_PROTO,
 			},
 			"source": schema.StringAttribute{
-				Computed: true,
-				Optional: true,
-				Default:  stringdefault.StaticString(""),
+				Computed:    true,
+				Optional:    true,
+				Default:     stringdefault.StaticString(""),
+				Description: DESC_RULE_SOURCE,
 			},
 			"sport": schema.StringAttribute{
-				Computed: true,
-				Optional: true,
-				Default:  stringdefault.StaticString(""),
+				Computed:    true,
+				Optional:    true,
+				Default:     stringdefault.StaticString(""),
+				Description: DESC_RULE_SPORT,
 			},
-			"type": schema.StringAttribute{Required: true},
+			"type": schema.StringAttribute{
+				Required:    true,
+				Description: DESC_RULE_TYPE,
+			},
 		},
 	}
 
@@ -120,11 +139,13 @@ func (r *RulesResource) Schema(ctx context.Context, req resource.SchemaRequest, 
 		MarkdownDescription: "Node firewall rules resource",
 		Attributes: map[string]schema.Attribute{
 			"node": schema.StringAttribute{
-				Required: true,
+				Required:    true,
+				Description: DESC_RULE_NODE,
 			},
 			"rules": schema.ListNestedAttribute{
 				NestedObject: ruleSchema,
 				Required:     true,
+				Description:  DESC_RULES,
 			},
 		},
 	}
