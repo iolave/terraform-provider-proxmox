@@ -69,10 +69,10 @@ func (r *RuleResource) Schema(ctx context.Context, req resource.SchemaRequest, r
 				Default:     stringdefault.StaticString(""),
 				Description: DESC_RULE_DEST,
 			},
-			"dport": schema.Int64Attribute{
+			"dport": schema.StringAttribute{
 				Computed:    true,
 				Optional:    true,
-				Default:     int64default.StaticInt64(0),
+				Default:     stringdefault.StaticString(""),
 				Description: DESC_RULE_DPORT,
 			},
 			"enable": schema.BoolAttribute{
@@ -184,7 +184,7 @@ func (r *RuleResource) Create(ctx context.Context, req resource.CreateRequest, r
 		Comment:     data.Comment.ValueString(),
 		Destination: data.Destination.ValueString(),
 		//Digest:          data.Digest.ValueString(),
-		DestinationPort: int(data.DestinationPort.ValueInt64()),
+		DestinationPort: data.DestinationPort.ValueString(),
 		Enable:          enable,
 		ICMPType:        data.ICMPType.ValueString(),
 		Interface:       data.Interface.ValueString(),
@@ -239,7 +239,7 @@ func (r *RuleResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 	data.Comment = types.StringValue(comment)
 
 	data.Destination = types.StringValue(remoteRule.Destination)
-	data.DestinationPort = types.Int64Value(int64(remoteRule.DestinationPort))
+	data.DestinationPort = types.StringValue(remoteRule.DestinationPort)
 	enable := false
 	if remoteRule.Enable == 1 {
 		enable = true
@@ -292,7 +292,7 @@ func (r *RuleResource) Update(ctx context.Context, req resource.UpdateRequest, r
 		Comment:     data.Comment.ValueString(),
 		Destination: data.Destination.ValueString(),
 		//Digest:          data.Digest.ValueString(),
-		DestinationPort: int(data.DestinationPort.ValueInt64()),
+		DestinationPort: data.DestinationPort.ValueString(),
 		Enable:          enable,
 		ICMPType:        data.ICMPType.ValueString(),
 		Interface:       data.Interface.ValueString(),

@@ -40,7 +40,7 @@ func (d *rulesDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, 
 			"action":      schema.StringAttribute{Computed: true},
 			"comment":     schema.StringAttribute{Computed: true},
 			"destination": schema.StringAttribute{Computed: true},
-			"dport":       schema.Int64Attribute{Computed: true},
+			"dport":       schema.StringAttribute{Computed: true},
 			"enable":      schema.BoolAttribute{Computed: true},
 			"icmp_type":   schema.StringAttribute{Computed: true},
 			"iface":       schema.StringAttribute{Computed: true},
@@ -91,7 +91,7 @@ func (d *rulesDataSource) Read(ctx context.Context, req datasource.ReadRequest, 
 		rule.Action = types.StringValue(r.Action)
 		rule.Comment = types.StringValue(r.Comment)
 		rule.Destination = types.StringValue(r.Destination)
-		rule.DestinationPort = types.Int64Value(int64(r.DestinationPort))
+		rule.DestinationPort = types.StringValue(r.DestinationPort)
 		switch r.Enable {
 		case 0:
 			rule.Enable = types.BoolValue(false)
@@ -159,7 +159,7 @@ type ruleModel struct {
 	Action          types.String `tfsdk:"action"`
 	Comment         types.String `tfsdk:"comment"`
 	Destination     types.String `tfsdk:"destination"`
-	DestinationPort types.Int64  `tfsdk:"dport"`
+	DestinationPort types.String `tfsdk:"dport"`
 	Enable          types.Bool   `tfsdk:"enable"`
 	ICMPType        types.String `tfsdk:"icmp_type"`
 	Interface       types.String `tfsdk:"iface"`
