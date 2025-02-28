@@ -32,12 +32,28 @@ type LXCResource struct {
 }
 
 type LXCFeaturesResourceModel struct {
-	ForceRWSys types.Bool `tfsdk:"force_rw_sys"`
-	Fuse       types.Bool `tfsdk:"fuse"`
-	KeyCTL     types.Bool `tfsdk:"key_ctl"`
+	ForceRWSys *types.Bool `tfsdk:"force_rw_sys"`
+	Fuse       *types.Bool `tfsdk:"fuse"`
+	KeyCTL     *types.Bool `tfsdk:"key_ctl"`
+	Nesting    *types.Bool `tfsdk:"nesting"`
 	// TODO: Add support for mknod.
 	// mknod types.idk `tfsdk:"mknod"`?
-	Nesting types.Bool `tfsdk:"nesting"`
+}
+
+func (m *LXCFeaturesResourceModel) LoadFromObject(ctx context.Context, obj types.Object) {
+	obj.As(ctx, m, basetypes.ObjectAsOptions{
+		UnhandledNullAsEmpty:    true,
+		UnhandledUnknownAsEmpty: true,
+	})
+}
+
+func (m LXCFeaturesResourceModel) ToPVELXCFeatures() pve.LXCFeatures {
+	return pve.LXCFeatures{
+		ForceRWSys: m.ForceRWSys.ValueBoolPointer(),
+		Fuse:       m.Fuse.ValueBoolPointer(),
+		KeyCTL:     m.KeyCTL.ValueBoolPointer(),
+		Nesting:    m.Nesting.ValueBoolPointer(),
+	}
 }
 
 type LXCRootFSResourceModel struct {
@@ -302,6 +318,11 @@ func (r *LXCResource) Create(ctx context.Context, req resource.CreateRequest, re
 		Password:      data.Password.ValueString(),
 		SSHPublicKeys: ssh,
 	}
+
+	// Set features to api request
+	feats := LXCFeaturesResourceModel{}
+	feats.LoadFromObject(ctx, data.Features)
+	apiReq.Features = feats.ToPVELXCFeatures()
 
 	// set networks to api request
 	networksCopy := []types.Object{}

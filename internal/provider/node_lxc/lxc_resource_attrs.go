@@ -351,19 +351,15 @@ func newLXCFeaturesResourceAttrs() map[string]schema.Attribute {
 	return map[string]schema.Attribute{
 		"force_rw_sys": schema.BoolAttribute{
 			Optional: true,
-			Computed: true,
 		},
 		"fuse": schema.BoolAttribute{
 			Optional: true,
-			Computed: true,
 		},
 		"key_ctl": schema.BoolAttribute{
 			Optional: true,
-			Computed: true,
 		},
 		"nesting": schema.BoolAttribute{
 			Optional: true,
-			Computed: true,
 		},
 	}
 }
