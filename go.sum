@@ -98,10 +98,10 @@ github.com/hashicorp/terraform-svchost v0.1.1 h1:EZZimZ1GxdqFRinZ1tpJwVxxt49xc/S
 github.com/hashicorp/terraform-svchost v0.1.1/go.mod h1:mNsjQfZyf/Jhz35v6/0LWcv26+X7JPS+buii2c9/ctc=
 github.com/hashicorp/yamux v0.1.1 h1:yrQxtgseBDrq9Y652vSRDvsKCJKOUD+GzTS4Y0Y8pvE=
 github.com/hashicorp/yamux v0.1.1/go.mod h1:CtWFDAQgb7dxtzFs4tWbplKIe2jSi3+5vKbgIO0SLnQ=
-github.com/iolave/go-proxmox v0.5.1-0.20250130182948-94f72a2d3449 h1:2EG92oA/mcFG7bEwjPPoI3RLzVof21RqYcP6BzrXiPs=
-github.com/iolave/go-proxmox v0.5.1-0.20250130182948-94f72a2d3449/go.mod h1:xdo8ybfyAsN1NWvw/2580ISHZ5s2nqz/OTCFSImPy9I=
-github.com/iolave/go-proxmox v0.5.1-0.20250130185615-0913b163a72f h1:t+eHaItdc3IYA0HXabmAJlm/z4tjf00jk2+pNW7B2ZI=
-github.com/iolave/go-proxmox v0.5.1-0.20250130185615-0913b163a72f/go.mod h1:xdo8ybfyAsN1NWvw/2580ISHZ5s2nqz/OTCFSImPy9I=
+github.com/iolave/go-proxmox v0.6.0 h1:4z4VMm/AE7fcVOuPRqJsYUb4jdAZOoRwTQ9qSGkEkM0=
+github.com/iolave/go-proxmox v0.6.0/go.mod h1:1w45+Lnda6Bem7R+zgSXqadIbOjx8Ep8n7Ve4by6Tas=
+github.com/iolave/go-proxmox v0.6.1 h1:PM/bqbh4NhRO1U1PMxdFnQT174UHwtTugdXAo0M9Krg=
+github.com/iolave/go-proxmox v0.6.1/go.mod h1:1w45+Lnda6Bem7R+zgSXqadIbOjx8Ep8n7Ve4by6Tas=
 github.com/jbenet/go-context v0.0.0-20150711004518-d14ea06fba99 h1:BQSFePA1RWJOlocH6Fxy8MmwDt+yVQYULKfN0RoTN8A=
 github.com/jbenet/go-context v0.0.0-20150711004518-d14ea06fba99/go.mod h1:1lJo3i6rXxKeerYnT8Nvf0QmHCRC1n8sfWVwXF2Frvo=
 github.com/jhump/protoreflect v1.15.1 h1:HUMERORf3I3ZdX05WaQ6MIpd/NJ434hTp5YiKgfCL6c=
