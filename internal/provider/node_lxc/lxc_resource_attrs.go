@@ -320,15 +320,13 @@ func newLXCResourceAttrs() map[string]schema.Attribute {
 		//		boolplanmodifier.RequiresReplace(),
 		//	},
 		//},
-		//"unprivileged": schema.BoolAttribute{
-		//	Description: DESC_LXC_UNPRIV,
-		//	Optional:    true,
-		//	//Computed:    true,
-		//	//Default:     booldefault.StaticBool(DFLT_LXC_UNPRIV),
-		//	PlanModifiers: []planmodifier.Bool{
-		//		boolplanmodifier.RequiresReplace(),
-		//	},
-		//},
+		"unprivileged": schema.BoolAttribute{
+			Description: DESC_LXC_UNPRIV,
+			Optional:    true,
+			PlanModifiers: []planmodifier.Bool{
+				boolplanmodifier.RequiresReplace(),
+			},
+		},
 		"cmds": schema.ListAttribute{
 			Description: DESC_LXC_CMDS,
 			ElementType: types.StringType,

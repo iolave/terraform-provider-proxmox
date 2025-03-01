@@ -32,28 +32,30 @@ type LXCResource struct {
 }
 
 type LXCFeaturesResourceModel struct {
-	ForceRWSys *types.Bool `tfsdk:"force_rw_sys"`
-	Fuse       *types.Bool `tfsdk:"fuse"`
-	KeyCTL     *types.Bool `tfsdk:"key_ctl"`
-	Nesting    *types.Bool `tfsdk:"nesting"`
+	ForceRWSys types.Bool `tfsdk:"force_rw_sys"`
+	Fuse       types.Bool `tfsdk:"fuse"`
+	KeyCTL     types.Bool `tfsdk:"key_ctl"`
+	Nesting    types.Bool `tfsdk:"nesting"`
 	// TODO: Add support for mknod.
 	// mknod types.idk `tfsdk:"mknod"`?
 }
 
 func (m *LXCFeaturesResourceModel) LoadFromObject(ctx context.Context, obj types.Object) {
 	obj.As(ctx, m, basetypes.ObjectAsOptions{
-		UnhandledNullAsEmpty:    true,
 		UnhandledUnknownAsEmpty: true,
+		UnhandledNullAsEmpty:    true,
 	})
 }
 
 func (m LXCFeaturesResourceModel) ToPVELXCFeatures() pve.LXCFeatures {
-	return pve.LXCFeatures{
-		ForceRWSys: m.ForceRWSys.ValueBoolPointer(),
-		Fuse:       m.Fuse.ValueBoolPointer(),
-		KeyCTL:     m.KeyCTL.ValueBoolPointer(),
-		Nesting:    m.Nesting.ValueBoolPointer(),
-	}
+	f := pve.LXCFeatures{}
+
+	f.ForceRWSys = m.ForceRWSys.ValueBoolPointer()
+	f.Fuse = m.Fuse.ValueBoolPointer()
+	f.KeyCTL = m.KeyCTL.ValueBoolPointer()
+	f.Nesting = m.Nesting.ValueBoolPointer()
+
+	return f
 }
 
 type LXCRootFSResourceModel struct {
@@ -223,7 +225,7 @@ type LXCResourceModel struct {
 	//Timezone     types.String   `tfsdk:"timezone"`
 	//AvailableTTY types.Int64    `tfsdk:"available_tty"`
 	//UniqueHWAddr types.Bool     `tfsdk:"unique_hw_addr"`
-	//Unprivileged types.Bool     `tfsdk:"unprivileged"`
+	Unprivileged types.Bool `tfsdk:"unprivileged"`
 	// TODO: Add support for unused[n]?
 
 	// Custom
@@ -319,9 +321,14 @@ func (r *LXCResource) Create(ctx context.Context, req resource.CreateRequest, re
 		SSHPublicKeys: ssh,
 	}
 
+	if unpriv := data.Unprivileged.ValueBoolPointer(); unpriv != nil {
+		apiReq.Unprivileged = *unpriv
+	}
+
 	// Set features to api request
 	feats := LXCFeaturesResourceModel{}
 	feats.LoadFromObject(ctx, data.Features)
+	tflog.Debug(ctx, "got features", map[string]any{"features": feats.ToPVELXCFeatures()})
 	apiReq.Features = feats.ToPVELXCFeatures()
 
 	// set networks to api request
@@ -343,7 +350,7 @@ func (r *LXCResource) Create(ctx context.Context, req resource.CreateRequest, re
 	// send lxc create request through api
 	createRes, err := r.client.LXC.Create(apiReq)
 	if err != nil {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create node lxc, got error: %s", err))
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create node lxc, got error: %s", err.Error()))
 		return
 	}
 	tflog.Info(ctx, "lxc created", map[string]any{"id": createRes, "req": apiReq})
@@ -506,11 +513,11 @@ func (r *LXCResource) Create(ctx context.Context, req resource.CreateRequest, re
 			cmd := cmd.ValueString()
 			// TODO: add support for more shells
 			out, exit, err := r.client.LXC.Exec(vmid, "bash", cmd)
-			if err != nil {
-				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create node lxc, got error: %s", err))
+			tflog.Info(ctx, "executed cmd", map[string]any{"cmd": cmd, "output": out, "exitCode": exit, "error": err})
+			if exit != 0 {
+				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create node lxc cuz command execution failed, got error: %s", err.Error()))
 				return
 			}
-			tflog.Info(ctx, "executed cmd", map[string]any{"cmd": cmd, "output": out, "exitCode": exit})
 
 			if exit == 0 {
 				continue
