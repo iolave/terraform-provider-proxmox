@@ -181,15 +181,13 @@ func newLXCResourceAttrs() map[string]schema.Attribute {
 				listplanmodifier.RequiresReplace(),
 			},
 		},
-		//"on_boot": schema.BoolAttribute{
-		//	Description: DESC_LXC_ONBOOT,
-		//	Optional:    true,
-		//	//Computed:    true,
-		//	//Default:     booldefault.StaticBool(DFLT_LXC_ONBOOT),
-		//	PlanModifiers: []planmodifier.Bool{
-		//		boolplanmodifier.RequiresReplace(),
-		//	},
-		//},
+		"on_boot": schema.BoolAttribute{
+			Description: DESC_LXC_ONBOOT,
+			Optional:    true,
+			PlanModifiers: []planmodifier.Bool{
+				boolplanmodifier.RequiresReplace(),
+			},
+		},
 		//"os_type": schema.StringAttribute{
 		//	Description: DESC_LXC_OSTYPE,
 		//	Optional:    true,

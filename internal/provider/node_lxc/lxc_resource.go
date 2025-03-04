@@ -204,8 +204,7 @@ type LXCResourceModel struct {
 	//Nameserver types.String `tfsdk:"nameserver"`
 	//TODO: Add support for multiple networks. "net[n]" in the docs.
 	Networks []types.Object `tfsdk:"networks"`
-
-	//OnBoot        types.Bool     `tfsdk:"on_boot"`
+	OnBoot   types.Bool     `tfsdk:"on_boot"`
 	//OSType        types.String   `tfsdk:"os_type"`
 	Password types.String `tfsdk:"password"`
 	//Pool          types.String   `tfsdk:"pool"`
@@ -323,6 +322,10 @@ func (r *LXCResource) Create(ctx context.Context, req resource.CreateRequest, re
 
 	if unpriv := data.Unprivileged.ValueBoolPointer(); unpriv != nil {
 		apiReq.Unprivileged = *unpriv
+	}
+
+	if onBoot := data.OnBoot.ValueBoolPointer(); onBoot != nil {
+		apiReq.OnBoot = *onBoot
 	}
 
 	// Set features to api request
