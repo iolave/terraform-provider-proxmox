@@ -235,7 +235,10 @@ func (r *RuleResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 	data.ID = types.StringValue(remoteRule.ID)
 	data.Action = types.StringValue(remoteRule.Action)
 	idx := strings.IndexRune(remoteRule.Comment, ']')
-	comment := remoteRule.Comment[idx+2:]
+	comment := ""
+	if len(remoteRule.Comment) >= idx+2 {
+		comment = remoteRule.Comment[idx+2:]
+	}
 	data.Comment = types.StringValue(comment)
 
 	data.Destination = types.StringValue(remoteRule.Destination)
