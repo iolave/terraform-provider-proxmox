@@ -9,8 +9,12 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/iolave/go-proxmox/pkg/pve"
@@ -48,93 +52,144 @@ func (r *RuleResource) Schema(ctx context.Context, req resource.SchemaRequest, r
 			"node": schema.StringAttribute{
 				Description: DESC_RULE_NODE,
 				Required:    true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
 			},
 			"id": schema.StringAttribute{
 				Computed:    true,
 				Description: DESC_RULE_ID,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
 			},
 			"action": schema.StringAttribute{
 				Required:    true,
 				Description: DESC_RULE_ACTION,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
 			},
 			"comment": schema.StringAttribute{
 				Computed:    true,
 				Optional:    true,
 				Default:     stringdefault.StaticString(""),
 				Description: DESC_RULE_COMMENT,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
 			},
 			"destination": schema.StringAttribute{
 				Computed:    true,
 				Optional:    true,
 				Default:     stringdefault.StaticString(""),
 				Description: DESC_RULE_DEST,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
 			},
 			"dport": schema.StringAttribute{
 				Computed:    true,
 				Optional:    true,
 				Default:     stringdefault.StaticString(""),
 				Description: DESC_RULE_DPORT,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
 			},
 			"enable": schema.BoolAttribute{
 				Computed:    true,
 				Optional:    true,
 				Default:     booldefault.StaticBool(false),
 				Description: DESC_RULE_ENABLE,
+				PlanModifiers: []planmodifier.Bool{
+					boolplanmodifier.RequiresReplace(),
+				},
 			},
 			"icmp_type": schema.StringAttribute{
 				Computed:    true,
 				Optional:    true,
 				Default:     stringdefault.StaticString(""),
 				Description: DESC_RULE_ICMP,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
 			},
 			"iface": schema.StringAttribute{
 				Computed:    true,
 				Optional:    true,
 				Default:     stringdefault.StaticString(""),
 				Description: DESC_RULE_IFACE,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
 			},
 			"ip_version": schema.Int64Attribute{
 				Computed: true,
-				Default:  int64default.StaticInt64(4),
+				Default:  int64default.StaticInt64(0),
+				PlanModifiers: []planmodifier.Int64{
+					int64planmodifier.RequiresReplace(),
+				},
 			},
 			"log": schema.StringAttribute{
 				Computed:    true,
 				Optional:    true,
 				Default:     stringdefault.StaticString(""),
 				Description: DESC_RULE_LOG,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
 			},
 			"macro": schema.StringAttribute{
 				Computed:    true,
 				Optional:    true,
 				Default:     stringdefault.StaticString(""),
 				Description: DESC_RULE_MACRO,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
 			},
 			// FIXME: POS NOT WORKING
 			"pos": schema.Int64Attribute{
 				Optional:    true,
 				Description: DESC_RULE_POS,
+				PlanModifiers: []planmodifier.Int64{
+					int64planmodifier.RequiresReplace(),
+				},
 			},
 			"proto": schema.StringAttribute{
 				Computed:    true,
 				Optional:    true,
 				Default:     stringdefault.StaticString(""),
 				Description: DESC_RULE_PROTO,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
 			},
 			"source": schema.StringAttribute{
 				Computed:    true,
 				Optional:    true,
 				Default:     stringdefault.StaticString(""),
 				Description: DESC_RULE_SOURCE,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
 			},
 			"sport": schema.StringAttribute{
 				Computed:    true,
 				Optional:    true,
 				Default:     stringdefault.StaticString(""),
 				Description: DESC_RULE_SPORT,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
 			},
 			"type": schema.StringAttribute{
 				Required:    true,
 				Description: DESC_RULE_TYPE,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
 			},
 		},
 	}
@@ -224,6 +279,10 @@ func (r *RuleResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 
 	// If applicable, this is a great opportunity to initialize any necessary
 	// provider client data and make a call using it.
+	tflog.Debug(ctx, "GetRule args", map[string]any{
+		"id":   data.ID.ValueString(),
+		"node": data.Node.ValueString(),
+	})
 	remoteRule, err := r.client.Node.Firewall.GetRule(
 		data.Node.ValueString(),
 		data.ID.ValueString(),
