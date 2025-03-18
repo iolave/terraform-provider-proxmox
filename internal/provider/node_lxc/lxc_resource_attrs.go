@@ -177,9 +177,6 @@ func newLXCResourceAttrs() map[string]schema.Attribute {
 			NestedObject: schema.NestedAttributeObject{
 				Attributes: newLXCNetResourceAttrs(),
 			},
-			PlanModifiers: []planmodifier.List{
-				listplanmodifier.RequiresReplace(),
-			},
 		},
 		"on_boot": schema.BoolAttribute{
 			Description: DESC_LXC_ONBOOT,

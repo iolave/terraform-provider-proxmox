@@ -455,11 +455,11 @@ func (r *LXCResource) Create(ctx context.Context, req resource.CreateRequest, re
 			}
 
 			data.Networks = []types.Object{}
-			for i, net := range computedNets {
+			for i, netPosObj := range networksCopy {
+				netPosModel := LXCNetResourceModel{}
+				netPosModel.LoadFromObject(ctx, netPosObj)
+				net := computedNets[netPosModel.Name]
 				tflog.Debug(ctx, "got network with computed ip", map[string]interface{}{"try": i, "network": net, "pos": i})
-				net2 := LXCNetResourceModel{}
-				net2.LoadFromObject(ctx, net.ToObject())
-				tflog.Debug(ctx, "got network with computed ip", map[string]interface{}{"try": i, "network": net2, "pos": i})
 
 				data.Networks = append(data.Networks, net.ToObject())
 			}
@@ -643,11 +643,11 @@ func (r *LXCResource) Read(ctx context.Context, req resource.ReadRequest, resp *
 			}
 
 			data.Networks = []types.Object{}
-			for i, net := range computedNets {
+			for i, netPosObj := range networksCopy {
+				netPosModel := LXCNetResourceModel{}
+				netPosModel.LoadFromObject(ctx, netPosObj)
+				net := computedNets[i]
 				tflog.Debug(ctx, "got network with computed ip", map[string]interface{}{"try": i, "network": net, "pos": i})
-				net2 := LXCNetResourceModel{}
-				net2.LoadFromObject(ctx, net.ToObject())
-				tflog.Debug(ctx, "got network with computed ip", map[string]interface{}{"try": i, "network": net2, "pos": i})
 
 				data.Networks = append(data.Networks, net.ToObject())
 			}
