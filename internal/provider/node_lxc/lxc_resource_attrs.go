@@ -163,14 +163,13 @@ func newLXCResourceAttrs() map[string]schema.Attribute {
 		//		int64planmodifier.RequiresReplace(),
 		//	},
 		//},
-		//"nameserver": schema.StringAttribute{
-		//	Description: DESC_LXC_NS,
-		//	Optional:    true,
-		//	//Computed:    true,
-		//	PlanModifiers: []planmodifier.String{
-		//		stringplanmodifier.RequiresReplace(),
-		//	},
-		//},
+		"nameserver": schema.StringAttribute{
+			Description: DESC_LXC_NS,
+			Optional:    true,
+			PlanModifiers: []planmodifier.String{
+				stringplanmodifier.RequiresReplace(),
+			},
+		},
 		"networks": schema.ListNestedAttribute{
 			Description: DESC_LXC_NET,
 			Optional:    true,

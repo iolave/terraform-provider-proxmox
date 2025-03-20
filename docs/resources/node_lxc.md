@@ -26,6 +26,7 @@ Node lxc resource
 - `features` (Block, Optional) Allow containers access to advanced features. (see [below for nested schema](#nestedblock--features))
 - `hostname` (String) Set a host name for the container.
 - `id` (Number) The (unique) ID of the VM.
+- `nameserver` (String) Sets DNS server IP address for a container. Create will automatically use the setting from the host if you neither set searchdomain nor nameserver.
 - `networks` (Attributes List) Specifies network interface for the container. (see [below for nested schema](#nestedatt--networks))
 - `on_boot` (Boolean) Specifies whether a container will be started during system bootup.
 - `password` (String, Sensitive) Sets root password inside container.

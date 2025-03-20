@@ -201,7 +201,7 @@ type LXCResourceModel struct {
 	// TODO: Add support for mount points. "mp[n]" in the docs.
 	// mp[n] types.idk
 
-	//Nameserver types.String `tfsdk:"nameserver"`
+	Nameserver types.String `tfsdk:"nameserver"`
 	//TODO: Add support for multiple networks. "net[n]" in the docs.
 	Networks []types.Object `tfsdk:"networks"`
 	OnBoot   types.Bool     `tfsdk:"on_boot"`
@@ -326,6 +326,12 @@ func (r *LXCResource) Create(ctx context.Context, req resource.CreateRequest, re
 
 	if onBoot := data.OnBoot.ValueBoolPointer(); onBoot != nil {
 		apiReq.OnBoot = *onBoot
+	}
+	if onBoot := data.OnBoot.ValueBoolPointer(); onBoot != nil {
+		apiReq.OnBoot = *onBoot
+	}
+	if ns := data.Nameserver.ValueStringPointer(); ns != nil {
+		apiReq.Nameserver = *ns
 	}
 
 	// Set features to api request
