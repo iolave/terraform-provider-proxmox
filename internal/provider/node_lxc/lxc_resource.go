@@ -519,10 +519,33 @@ func (r *LXCResource) Create(ctx context.Context, req resource.CreateRequest, re
 
 		// run commands
 		for _, cmd := range data.CMDs {
-			cmd := cmd.ValueString()
-			// TODO: add support for more shells
-			out, exit, err := r.client.LXC.Exec(vmid, "bash", cmd)
-			tflog.Info(ctx, "executed cmd", map[string]any{"cmd": cmd, "output": out, "exitCode": exit, "error": err})
+			var execId string
+			var err error
+			var models
+
+			for retry := 0; retry < 5; retry++ {
+				cmd := cmd.ValueString()
+
+				tflog.Info(ctx, "executing cmd", map[string]any{"cmd": cmd})
+				execId, err = r.client.LXC.ExecAsync(vmid, "bash", cmd)
+				if err != nil {
+					tflog.Error(ctx, "failed to execute cmd", map[string]interface{}{"try": retry + 1, "cmd": cmd})
+					continue
+				}
+			}
+			if err != nil {
+				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create node lxc, got error: %s", err))
+				return
+			}
+
+			for retry := 0; retry < 5; retry++ {
+				result, err = r.client.LXC.GetCMDResult(execId)
+				if err != nil {
+					tflog.Error(ctx, "failed to execute cmd", map[string]interface{}{"try": retry + 1, "cmd": cmd})
+					continue
+				}
+			}
+
 			if exit != 0 {
 				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create node lxc cuz command execution failed, got error: %s", err.Error()))
 				return
@@ -535,6 +558,7 @@ func (r *LXCResource) Create(ctx context.Context, req resource.CreateRequest, re
 			err = fmt.Errorf(`failed to execute command "%s", exit_code=%d, output=%s`, cmd, exit, out)
 			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create node lxc, got error: %s", err))
 			return
+
 		}
 
 		// if the desiredStatus is stopped stop the lxc
