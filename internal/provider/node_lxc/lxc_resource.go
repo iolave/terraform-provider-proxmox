@@ -520,45 +520,54 @@ func (r *LXCResource) Create(ctx context.Context, req resource.CreateRequest, re
 		// run commands
 		for _, cmd := range data.CMDs {
 			var execId string
-			var err error
-			var models
+			var execErr error
 
 			for retry := 0; retry < 5; retry++ {
 				cmd := cmd.ValueString()
 
 				tflog.Info(ctx, "executing cmd", map[string]any{"cmd": cmd})
-				execId, err = r.client.LXC.ExecAsync(vmid, "bash", cmd)
+				execId, execErr = r.client.LXC.ExecAsync(vmid, "bash", cmd)
 				if err != nil {
 					tflog.Error(ctx, "failed to execute cmd", map[string]interface{}{"try": retry + 1, "cmd": cmd})
 					continue
 				}
 			}
-			if err != nil {
+			if execErr != nil {
 				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create node lxc, got error: %s", err))
 				return
 			}
 
 			for retry := 0; retry < 5; retry++ {
-				result, err = r.client.LXC.GetCMDResult(execId)
+				result, err := r.client.LXC.GetCMDResult(execId)
+				execErr = err
 				if err != nil {
-					tflog.Error(ctx, "failed to execute cmd", map[string]interface{}{"try": retry + 1, "cmd": cmd})
+					tflog.Error(ctx, "failed to execute cmd", map[string]any{"try": retry + 1, "cmd": cmd})
 					continue
 				}
-			}
+				switch result.Status {
+				case "FAILED":
+					tflog.Error(ctx, "failed to execute cmd", map[string]any{"try": retry + 1, "cmd": cmd, "error": result.Error})
+					continue
+				case "RUNNING":
+					tflog.Info(ctx, "cmd still running", map[string]any{"try": retry + 1, "cmd": cmd})
 
-			if exit != 0 {
-				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create node lxc cuz command execution failed, got error: %s", err.Error()))
+					// just to stop incrementing
+					retry = retry - 1
+					continue
+				case "SUCCEEDED":
+					if *result.ExitCode != 0 {
+						execErr = errors.New(*result.Output)
+					} else {
+						tflog.Info(ctx, "cmd succeeded", map[string]any{"try": retry + 1, "cmd": cmd})
+					}
+					break
+				}
+
+			}
+			if execErr != nil {
+				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create node lxc, got error: %s", err))
 				return
 			}
-
-			if exit == 0 {
-				continue
-			}
-			// fail on command non zero exit code
-			err = fmt.Errorf(`failed to execute command "%s", exit_code=%d, output=%s`, cmd, exit, out)
-			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create node lxc, got error: %s", err))
-			return
-
 		}
 
 		// if the desiredStatus is stopped stop the lxc
