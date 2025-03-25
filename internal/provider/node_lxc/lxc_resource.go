@@ -521,35 +521,42 @@ func (r *LXCResource) Create(ctx context.Context, req resource.CreateRequest, re
 		for _, cmd := range data.CMDs {
 			var execId string
 			var execErr error
+			cmdstr := cmd.ValueString()
 
 			for retry := 0; retry < 5; retry++ {
-				cmd := cmd.ValueString()
-
-				tflog.Info(ctx, "executing cmd", map[string]any{"cmd": cmd})
-				execId, execErr = r.client.LXC.ExecAsync(vmid, "bash", cmd)
-				if err != nil {
-					tflog.Error(ctx, "failed to execute cmd", map[string]interface{}{"try": retry + 1, "cmd": cmd})
+				tflog.Info(ctx, "executing cmd", map[string]any{"cmd": cmdstr})
+				execId, execErr = r.client.LXC.ExecAsync(vmid, "bash", cmdstr)
+				if execErr != nil {
+					tflog.Error(ctx, "failed to execute cmd", map[string]interface{}{"try": retry + 1, "cmd": cmdstr})
+					time.Sleep(time.Second * 3)
 					continue
 				}
+				break
 			}
 			if execErr != nil {
-				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create node lxc, got error: %s", err))
+				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create node lxc, got error: %s", execErr.Error()))
 				return
 			}
 
 			for retry := 0; retry < 5; retry++ {
+				time.Sleep(time.Second * 2)
 				result, err := r.client.LXC.GetCMDResult(execId)
 				execErr = err
-				if err != nil {
-					tflog.Error(ctx, "failed to execute cmd", map[string]any{"try": retry + 1, "cmd": cmd})
+				if execErr != nil {
+					tflog.Error(ctx, "failed to execute cmd", map[string]any{"try": retry + 1, "cmd": cmdstr, "error": execErr.Error()})
 					continue
 				}
+
 				switch result.Status {
 				case "FAILED":
-					tflog.Error(ctx, "failed to execute cmd", map[string]any{"try": retry + 1, "cmd": cmd, "error": result.Error})
+					errstr := ""
+					if result.Error != nil {
+						errstr = *result.Error
+					}
+					tflog.Error(ctx, "failed to execute cmd", map[string]any{"try": retry + 1, "cmd": cmdstr, "error": errstr})
 					continue
 				case "RUNNING":
-					tflog.Info(ctx, "cmd still running", map[string]any{"try": retry + 1, "cmd": cmd})
+					tflog.Info(ctx, "cmd still running", map[string]any{"try": retry + 1, "cmd": cmdstr})
 
 					// just to stop incrementing
 					retry = retry - 1
@@ -558,14 +565,15 @@ func (r *LXCResource) Create(ctx context.Context, req resource.CreateRequest, re
 					if *result.ExitCode != 0 {
 						execErr = errors.New(*result.Output)
 					} else {
-						tflog.Info(ctx, "cmd succeeded", map[string]any{"try": retry + 1, "cmd": cmd})
+						tflog.Info(ctx, "cmd succeeded", map[string]any{"try": retry + 1, "cmd": cmdstr})
 					}
 					break
 				}
 
 			}
 			if execErr != nil {
-				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create node lxc, got error: %s", err))
+				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create node lxc, got error: %s", execErr.Error()))
+
 				return
 			}
 		}
