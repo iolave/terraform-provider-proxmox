@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - proxmox_node_lxc.nameserver property.
 
+### Removed
+- Windows arm support.
+
 ### Fixed
 - proxmox_node_firewall_rule update method crash.
 - proxmox_node_lxc issue present in the create/read methods that sometimes inverted networks while being retrieved, ending up in a weird tfstate.
