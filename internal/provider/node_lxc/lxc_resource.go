@@ -291,24 +291,16 @@ func (r *LXCResource) Create(ctx context.Context, req resource.CreateRequest, re
 	}
 
 	// if no vmid has been set, retrieve one from proxmox
-	var vmid int
-	var err error
-	if data.VMID.IsNull() || data.VMID.IsUnknown() {
-		vmid, err = r.client.Cluster.GetRandomVMID()
-		if err != nil {
-			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create node lxc, got error: %s", err))
-			return
-		}
+	vmid, err := getVMID(r.client, data.VMID)
+	if err != nil {
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create node lxc, got error: %s", err))
+		return
 	} else {
-		vmid = int(data.VMID.ValueInt64())
+		tflog.Info(ctx, "got vmid from proxmox", map[string]any{"vmid": vmid})
 	}
-	tflog.Info(ctx, "got vmid from proxmox", map[string]any{"id": vmid})
 
-	// marshals ssh keys
-	ssh := ""
-	for _, pub := range data.SSHPublicKeys {
-		ssh = fmt.Sprintf("%s\n%s", ssh, pub.ValueString())
-	}
+	// Format the ssh public keys to the go-proxmox format
+	ssh := formatSSHPublicKey(data.SSHPublicKeys)
 
 	// Create resource
 	apiReq := pve.CreateLxcRequest{
@@ -335,74 +327,40 @@ func (r *LXCResource) Create(ctx context.Context, req resource.CreateRequest, re
 	}
 
 	// Set features to api request
-	feats := LXCFeaturesResourceModel{}
-	feats.LoadFromObject(ctx, data.Features)
-	tflog.Debug(ctx, "got features", map[string]any{"features": feats.ToPVELXCFeatures()})
-	apiReq.Features = feats.ToPVELXCFeatures()
+	apiReq.Features = newLXCFeaturesResourceModel(ctx, data.Features).
+		ToPVELXCFeatures()
+	tflog.Debug(ctx, "got features", map[string]any{"features": apiReq.Features})
 
 	// set networks to api request
-	networksCopy := []types.Object{}
-	for _, v := range data.Networks {
-		networksCopy = append(networksCopy, v)
-	}
-
-	for i, obj := range networksCopy {
-		net := LXCNetResourceModel{}
-		net.LoadFromObject(ctx, obj)
-		apiReq.Net = append(apiReq.Net, net.ToPVELXCNet())
-		tflog.Debug(ctx, "configured network", map[string]any{
-			"pos":     i,
-			"network": net,
-		})
-	}
+	apiReq.Net = newPVELXCNets(ctx, data.Networks)
+	tflog.Debug(ctx, "got networks", map[string]any{"networks": apiReq.Net})
 
 	// send lxc create request through api
-	createRes, err := r.client.LXC.Create(apiReq)
-	if err != nil {
+	if _, err := r.client.LXC.Create(apiReq); err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create node lxc, got error: %s", err.Error()))
 		return
+	} else {
+		tflog.Info(ctx, "lxc created", map[string]any{"vmid": vmid, "req": apiReq})
 	}
-	tflog.Info(ctx, "lxc created", map[string]any{"id": createRes, "req": apiReq})
-	// sets vmid to the state
-	data.VMID = types.Int64Value(int64(createRes))
+
+	// appends the current state after creation
+	data.VMID = types.Int64Value(int64(vmid))
+	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 
 	// Start or stop the lxc according to the configured status
-	desiredStatus := data.Status.ValueString()
-	for true {
-		time.Sleep(time.Second * 8)
-
-		tflog.Info(ctx, "querying lxc status", map[string]any{"id": createRes, "desired": desiredStatus})
-		remoteStatus, err := r.client.LXC.GetStatus(
-			data.Node.ValueString(),
+	err = updateLXCStatus(r.client, apiReq.Node, vmid, data.Status.ValueString())
+	if err != nil {
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create node lxc, got error: %s", err.Error()))
+		if err := deleteLXC(
+			r.client,
+			apiReq.Node,
 			vmid,
-		)
-		if err != nil {
-			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create node lxc, got error: %s", err))
-			return
+		); err != nil {
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to delete lxc, got error: %s", err.Error()))
+		} else {
+			resp.State.RemoveResource(ctx)
 		}
-		tflog.Info(ctx, "got lxc status", map[string]any{"id": createRes, "desired": desiredStatus, "remote": remoteStatus.Status})
-
-		if desiredStatus == remoteStatus.Status {
-			break
-		}
-
-		switch desiredStatus {
-		case string(pve.LXC_STATUS_RUNNING):
-			if remoteStatus.Status != string(pve.LXC_STATUS_STOPPED) {
-				continue
-			}
-			_, err = r.client.LXC.Start(pve.LXCStartRequest{Node: data.Node.ValueString(), ID: vmid})
-
-		case string(pve.LXC_STATUS_STOPPED):
-			if remoteStatus.Status != string(pve.LXC_STATUS_RUNNING) {
-				continue
-			}
-			_, err = r.client.LXC.Stop(pve.LXCStopRequest{Node: data.Node.ValueString(), ID: vmid})
-		}
-		if err != nil {
-			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create node lxc, got error: %s", err))
-			return
-		}
+		return
 	}
 
 	// Appends the current state after creation
@@ -410,80 +368,25 @@ func (r *LXCResource) Create(ctx context.Context, req resource.CreateRequest, re
 
 	// Compute network ips only if lxc is running.
 	// At this point, we know the lxc desired status.
-	if desiredStatus == string(pve.LXC_STATUS_RUNNING) {
-		ipRetries := 3
-		ipSleepTime := time.Second * 15
-		for i := 0; i < ipRetries; i++ {
-			time.Sleep(ipSleepTime)
-
-			// retrieve lxc interfaces of running lxc
-			// and store them in the map below for easy
-			// access through the iface name.
-			ifacesMap := map[string]pve.GetLxcInterfaceResponse{}
-			ifaces, err := r.client.LXC.GetInterfaces(apiReq.Node, vmid)
-			if err != nil {
-				tflog.Error(ctx, "failed to retrieve lxc ifaces", map[string]interface{}{"error": err.Error(), "try": i})
-				continue
+	if data.Status.ValueString() == string(pve.LXC_STATUS_RUNNING) {
+		computedNets, err := computeLXCNetIPs(ctx, r.client, apiReq.Node, vmid, data.Networks)
+		if err != nil {
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create node lxc, got error: %s", err.Error()))
+			if err := deleteLXC(
+				r.client,
+				apiReq.Node,
+				vmid,
+			); err != nil {
+				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to delete lxc, got error: %s", err.Error()))
+			} else {
+				resp.State.RemoveResource(ctx)
 			}
-			for _, iface := range ifaces {
-				tflog.Debug(ctx, "got interface", map[string]interface{}{"iface": iface, "try": i})
-				ifacesMap[iface.Name] = iface
-			}
-
-			// Read configured networks
-			computedNets := map[string]LXCNetResourceModel{}
-			for _, obj := range networksCopy {
-				net := LXCNetResourceModel{}
-				net.LoadFromObject(ctx, obj)
-
-				tflog.Debug(ctx, "mapping network to set computed ip", map[string]interface{}{"try": i, "network": net})
-
-				if ifacesMap[net.Name].IPv4 == "" {
-					tflog.Error(ctx, "lxc iface does not have an assigned ip", map[string]interface{}{"try": i, "net": net, "iface": ifacesMap[net.Name]})
-					break
-				}
-
-				ip := ifacesMap[net.Name].IPv4
-				net.ComputedIP = &ip
-				computedNets[net.Name] = net
-			}
-
-			tflog.Debug(ctx, "network slice and map sizes", map[string]interface{}{
-				"try":              i,
-				"computedNets":     len(computedNets),
-				"data.Networks":    len(data.Networks),
-				"computedNetsData": computedNets,
-			})
-			if len(data.Networks) != len(computedNets) {
-				err := errors.New("Unable to compute all ifaces ips")
-				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create node lxc, got error: %s", err))
-				return
-			}
-
-			data.Networks = []types.Object{}
-			for i, netPosObj := range networksCopy {
-				netPosModel := LXCNetResourceModel{}
-				netPosModel.LoadFromObject(ctx, netPosObj)
-				net := computedNets[netPosModel.Name]
-				tflog.Debug(ctx, "got network with computed ip", map[string]interface{}{"try": i, "network": net, "pos": i})
-
-				data.Networks = append(data.Networks, net.ToObject())
-			}
-
-			for i, obj := range data.Networks {
-				net := LXCNetResourceModel{}
-				net.LoadFromObject(ctx, obj)
-				tflog.Debug(ctx, "updated data network", map[string]interface{}{"try": i, "network": net, "pos": i})
-			}
+			return
 		}
-	}
 
-	for _, v := range data.Networks {
-		ip := v.Attributes()["computed_ip"].String()
-		tflog.Debug(ctx, "data network", map[string]interface{}{"ip": ip})
+		data.Networks = computedNets
+		resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 	}
-
-	tflog.Debug(ctx, "data after computed ips", map[string]interface{}{"data": data})
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 
@@ -492,115 +395,47 @@ func (r *LXCResource) Create(ctx context.Context, req resource.CreateRequest, re
 	// if desired status is stopped, start -> run cmds -> stop
 	if len(data.CMDs) > 0 {
 		// if the desiredStatus is stopped start the lxc
-		if desiredStatus == string(pve.LXC_STATUS_STOPPED) {
-			tflog.Info(ctx, "starting lxc to run comands", map[string]any{"id": createRes})
-
-			for true {
-				time.Sleep(time.Second * 8)
-
-				remoteStatus, err := r.client.LXC.GetStatus(
-					data.Node.ValueString(),
-					vmid,
-				)
-				if err != nil {
-					resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create node lxc, got error: %s", err))
-					return
-				}
-
-				data.Status = types.StringValue(remoteStatus.Status)
-				resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
-				tflog.Debug(ctx, "got lxc status while starting to tun commands", map[string]any{"id": createRes, "remote": remoteStatus.Status})
-
-				if string(pve.LXC_STATUS_RUNNING) == remoteStatus.Status {
-					break
-				}
+		if err := updateLXCStatus(r.client, apiReq.Node, vmid, string(pve.LXC_STATUS_RUNNING)); err != nil {
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to start node lxc, got error: %s", err))
+			if err := deleteLXC(
+				r.client,
+				apiReq.Node,
+				vmid,
+			); err != nil {
+				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to delete lxc, got error: %s", err.Error()))
+			} else {
+				resp.State.RemoveResource(ctx)
 			}
+			return
 		}
 
 		// run commands
-		for _, cmd := range data.CMDs {
-			var execId string
-			var execErr error
-			cmdstr := cmd.ValueString()
-
-			for retry := 0; retry < 5; retry++ {
-				tflog.Info(ctx, "executing cmd", map[string]any{"cmd": cmdstr})
-				execId, execErr = r.client.LXC.ExecAsync(vmid, "bash", cmdstr)
-				if execErr != nil {
-					tflog.Error(ctx, "failed to execute cmd", map[string]interface{}{"try": retry + 1, "cmd": cmdstr})
-					time.Sleep(time.Second * 3)
-					continue
-				}
-				break
+		if err := runLXCCommands(ctx, r.client, vmid, data.CMDs); err != nil {
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Failed to run commands inside lxc , got error: %s", err))
+			if err := deleteLXC(
+				r.client,
+				apiReq.Node,
+				vmid,
+			); err != nil {
+				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to delete lxc, got error: %s", err.Error()))
+			} else {
+				resp.State.RemoveResource(ctx)
 			}
-			if execErr != nil {
-				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create node lxc, got error: %s", execErr.Error()))
-				return
-			}
-
-			for retry := 0; retry < 5; retry++ {
-				time.Sleep(time.Second * 2)
-				result, err := r.client.LXC.GetCMDResult(execId)
-				execErr = err
-				if execErr != nil {
-					tflog.Error(ctx, "failed to execute cmd", map[string]any{"try": retry + 1, "cmd": cmdstr, "error": execErr.Error()})
-					continue
-				}
-
-				switch result.Status {
-				case "FAILED":
-					errstr := ""
-					if result.Error != nil {
-						errstr = *result.Error
-					}
-					tflog.Error(ctx, "failed to execute cmd", map[string]any{"try": retry + 1, "cmd": cmdstr, "error": errstr})
-					continue
-				case "RUNNING":
-					tflog.Info(ctx, "cmd still running", map[string]any{"try": retry + 1, "cmd": cmdstr})
-
-					// just to stop incrementing
-					retry = retry - 1
-					continue
-				case "SUCCEEDED":
-					if *result.ExitCode != 0 {
-						execErr = errors.New(*result.Output)
-					} else {
-						tflog.Info(ctx, "cmd succeeded", map[string]any{"try": retry + 1, "cmd": cmdstr})
-					}
-					break
-				}
-
-			}
-			if execErr != nil {
-				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create node lxc, got error: %s", execErr.Error()))
-
-				return
-			}
+			return
 		}
 
-		// if the desiredStatus is stopped stop the lxc
-		if desiredStatus == string(pve.LXC_STATUS_STOPPED) {
-			tflog.Info(ctx, "stopping lxc after commands executed", map[string]any{"id": createRes})
-
-			for true {
-				time.Sleep(time.Second * 8)
-
-				remoteStatus, err := r.client.LXC.GetStatus(
-					data.Node.ValueString(),
-					vmid,
-				)
-				if err != nil {
-					resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create node lxc, got error: %s", err))
-					return
-				}
-				data.Status = types.StringValue(remoteStatus.Status)
-				resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
-				tflog.Debug(ctx, "got lxc status while stopping after command ran", map[string]any{"id": createRes, "remote": remoteStatus.Status})
-
-				if string(pve.LXC_STATUS_STOPPED) == remoteStatus.Status {
-					break
-				}
+		if err := updateLXCStatus(r.client, apiReq.Node, vmid, data.Status.String()); err != nil {
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to update node lxc status, got error: %s", err))
+			if err := deleteLXC(
+				r.client,
+				apiReq.Node,
+				vmid,
+			); err != nil {
+				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to delete lxc, got error: %s", err.Error()))
+			} else {
+				resp.State.RemoveResource(ctx)
 			}
+			return
 		}
 	}
 
@@ -660,7 +495,7 @@ func (r *LXCResource) Read(ctx context.Context, req resource.ReadRequest, resp *
 			computedNets := []LXCNetResourceModel{}
 			ifaces, err := r.client.LXC.GetInterfaces(data.Node.String(), int(data.VMID.ValueInt64()))
 			if err != nil {
-				tflog.Error(ctx, "failed to retrieve lxc ifaces", map[string]interface{}{"error": err.Error(), "try": i})
+				tflog.Error(ctx, "failed to retrieve lxc ifaces", map[string]any{"error": err.Error(), "try": i})
 				continue
 			}
 
@@ -677,7 +512,7 @@ func (r *LXCResource) Read(ctx context.Context, req resource.ReadRequest, resp *
 					remoteIface = iface
 				}
 				if remoteIface.IPv4 == "" {
-					tflog.Error(ctx, "lxc iface does not have an assigned ip", map[string]interface{}{"try": i})
+					tflog.Error(ctx, "lxc iface does not have an assigned ip", map[string]any{"try": i})
 					break
 				}
 				net.ComputedIP = &remoteIface.IPv4
@@ -694,7 +529,7 @@ func (r *LXCResource) Read(ctx context.Context, req resource.ReadRequest, resp *
 				netPosModel := LXCNetResourceModel{}
 				netPosModel.LoadFromObject(ctx, netPosObj)
 				net := computedNets[i]
-				tflog.Debug(ctx, "got network with computed ip", map[string]interface{}{"try": i, "network": net, "pos": i})
+				tflog.Debug(ctx, "got network with computed ip", map[string]any{"try": i, "network": net, "pos": i})
 
 				data.Networks = append(data.Networks, net.ToObject())
 			}
@@ -702,7 +537,7 @@ func (r *LXCResource) Read(ctx context.Context, req resource.ReadRequest, resp *
 			for i, obj := range data.Networks {
 				net := LXCNetResourceModel{}
 				net.LoadFromObject(ctx, obj)
-				tflog.Debug(ctx, "updated data network", map[string]interface{}{"try": i, "network": net, "pos": i})
+				tflog.Debug(ctx, "updated data network", map[string]any{"try": i, "network": net, "pos": i})
 			}
 		}
 	}
@@ -781,69 +616,16 @@ func (r *LXCResource) Delete(ctx context.Context, req resource.DeleteRequest, re
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	// Stop the lxc if running
-	remoteStatus, err := r.client.LXC.GetStatus(
+
+	if err := deleteLXC(
+		r.client,
 		data.Node.ValueString(),
 		int(data.VMID.ValueInt64()),
-	)
-	if err != nil {
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to delete node lxc, got error: %s", err))
-		return
-	}
-	if remoteStatus.Status == string(pve.LXC_STATUS_RUNNING) {
-		_, err = r.client.LXC.Stop(pve.LXCStopRequest{
-			Node: data.Node.ValueString(),
-			ID:   int(data.VMID.ValueInt64()),
-		})
-		if err != nil {
-			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to delete node lxc, got error: %s", err))
-			return
-		}
-
-	}
-	// check if stopped
-	for true {
-		time.Sleep(time.Second * 2)
-		remoteStatus, err := r.client.LXC.GetStatus(
-			data.Node.ValueString(),
-			int(data.VMID.ValueInt64()),
-		)
-		if err != nil {
-			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to delete node lxc, got error: %s", err))
-			return
-		}
-		if remoteStatus.Status != string(pve.LXC_STATUS_STOPPED) {
-			continue
-		}
-		break
-	}
-
-	if _, err := r.client.LXC.Delete(
-		data.Node.ValueString(),
-		int(data.VMID.ValueInt64()),
-		nil,
 	); err != nil {
-		tflog.Error(ctx, err.Error())
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to delete node lxc, got error: %s", err))
 		return
 	}
 
-	// check if deleted
-	for true {
-		time.Sleep(time.Second * 2)
-		idAvailable, err := r.client.Cluster.IsVMIDAvailable(int(data.VMID.ValueInt64()))
-		if err != nil {
-			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to delete node lxc, got error: %s", err))
-			return
-		}
-		if !idAvailable {
-			continue
-		}
-		break
-	}
-
-	// Write logs using the tflog package
-	// Documentation: https://terraform.io/plugin/log
 	tflog.Trace(ctx, "deleted an lxc resource")
 }
 

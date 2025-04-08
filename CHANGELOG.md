@@ -14,8 +14,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - proxmox_node_firewall_rule update method crash.
-- proxmox_node_lxc issue present in the create/read methods that sometimes inverted networks while being retrieved, ending up in a weird tfstate.
+- proxmox_node_lxc issue present in the create/read methods that sometimes inverted networks while being retrieved, ending up in a wierd tfstate.
 - proxmox_node_lxc.networks[].computed_ip changes doesn't implies a destroy anymore.
+- proxmox_node_lxc now removes the lxc in case of a failure in the create method.
 
 ### Changed
 - proxmox_node_lxc now executes commands async.
