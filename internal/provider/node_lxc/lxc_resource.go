@@ -348,10 +348,17 @@ func (r *LXCResource) Create(ctx context.Context, req resource.CreateRequest, re
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 
 	// Start or stop the lxc according to the configured status
-	err = updateLXCStatus(r.client, apiReq.Node, vmid, data.Status.ValueString())
+	err = updateLXCStatus(
+		ctx,
+		r.client,
+		apiReq.Node,
+		vmid,
+		data.Status.ValueString(),
+	)
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create node lxc, got error: %s", err.Error()))
 		if err := deleteLXC(
+			ctx,
 			r.client,
 			apiReq.Node,
 			vmid,
@@ -373,6 +380,7 @@ func (r *LXCResource) Create(ctx context.Context, req resource.CreateRequest, re
 		if err != nil {
 			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create node lxc, got error: %s", err.Error()))
 			if err := deleteLXC(
+				ctx,
 				r.client,
 				apiReq.Node,
 				vmid,
@@ -395,9 +403,16 @@ func (r *LXCResource) Create(ctx context.Context, req resource.CreateRequest, re
 	// if desired status is stopped, start -> run cmds -> stop
 	if len(data.CMDs) > 0 {
 		// if the desiredStatus is stopped start the lxc
-		if err := updateLXCStatus(r.client, apiReq.Node, vmid, string(pve.LXC_STATUS_RUNNING)); err != nil {
+		if err := updateLXCStatus(
+			ctx,
+			r.client,
+			apiReq.Node,
+			vmid,
+			string(pve.LXC_STATUS_RUNNING),
+		); err != nil {
 			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to start node lxc, got error: %s", err))
 			if err := deleteLXC(
+				ctx,
 				r.client,
 				apiReq.Node,
 				vmid,
@@ -413,6 +428,7 @@ func (r *LXCResource) Create(ctx context.Context, req resource.CreateRequest, re
 		if err := runLXCCommands(ctx, r.client, vmid, data.CMDs); err != nil {
 			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Failed to run commands inside lxc , got error: %s", err))
 			if err := deleteLXC(
+				ctx,
 				r.client,
 				apiReq.Node,
 				vmid,
@@ -424,9 +440,16 @@ func (r *LXCResource) Create(ctx context.Context, req resource.CreateRequest, re
 			return
 		}
 
-		if err := updateLXCStatus(r.client, apiReq.Node, vmid, data.Status.String()); err != nil {
+		if err := updateLXCStatus(
+			ctx,
+			r.client,
+			apiReq.Node,
+			vmid,
+			data.Status.ValueString(),
+		); err != nil {
 			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to update node lxc status, got error: %s", err))
 			if err := deleteLXC(
+				ctx,
 				r.client,
 				apiReq.Node,
 				vmid,
@@ -620,6 +643,7 @@ func (r *LXCResource) Delete(ctx context.Context, req resource.DeleteRequest, re
 	}
 
 	if err := deleteLXC(
+		ctx,
 		r.client,
 		data.Node.ValueString(),
 		int(data.VMID.ValueInt64()),

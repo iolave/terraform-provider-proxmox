@@ -53,6 +53,7 @@ func newPVELXCNets(ctx context.Context, objs []types.Object) []pve.LxcNet {
 }
 
 func updateLXCStatus(
+	ctx context.Context,
 	c *pve.PVE,
 	node string,
 	vmid int,
@@ -76,6 +77,7 @@ func updateLXCStatus(
 			break
 		}
 
+		tflog.Debug(ctx, "debug_lxc_status", map[string]any{"vmid": vmid, "current_status": remoteStatus.Status, "desired_status": desiredStatus})
 		switch desiredStatus {
 		case string(pve.LXC_STATUS_RUNNING):
 			if remoteStatus.Status != string(pve.LXC_STATUS_STOPPED) {
@@ -226,6 +228,7 @@ func runLXCCommands(
 }
 
 func deleteLXC(
+	ctx context.Context,
 	c *pve.PVE,
 	node string,
 	vmid int,
@@ -233,6 +236,7 @@ func deleteLXC(
 	time.Sleep(time.Second * 15)
 	// Stop the lxc if running
 	if err := updateLXCStatus(
+		ctx,
 		c,
 		node,
 		vmid,
