@@ -58,7 +58,10 @@ func updateLXCStatus(
 	vmid int,
 	desiredStatus string,
 ) error {
+	retries := 5
+	try := 0
 	for true {
+		try++
 		time.Sleep(time.Second * 8)
 
 		remoteStatus, err := c.LXC.GetStatus(
@@ -89,7 +92,11 @@ func updateLXCStatus(
 			err = fmt.Errorf("unexpected status value, got %s", desiredStatus)
 		}
 
-		return err
+		if try <= retries {
+			continue
+		} else {
+			return err
+		}
 	}
 
 	return nil
