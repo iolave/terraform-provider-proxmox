@@ -95,8 +95,10 @@ func (d *rulesDataSource) Read(ctx context.Context, req datasource.ReadRequest, 
 		switch r.Enable {
 		case 0:
 			rule.Enable = types.BoolValue(false)
+			break
 		case 1:
 			rule.Enable = types.BoolValue(true)
+			break
 		default:
 			resp.Diagnostics.AddError(
 				"Unable to parse proxmox node firewall rule",

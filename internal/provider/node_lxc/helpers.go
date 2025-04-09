@@ -82,14 +82,17 @@ func updateLXCStatus(
 				continue
 			}
 			_, err = c.LXC.Start(pve.LXCStartRequest{Node: node, ID: vmid})
+			break
 
 		case string(pve.LXC_STATUS_STOPPED):
 			if remoteStatus.Status != string(pve.LXC_STATUS_RUNNING) {
 				continue
 			}
 			_, err = c.LXC.Stop(pve.LXCStopRequest{Node: node, ID: vmid})
+			break
 		default:
 			err = fmt.Errorf("unexpected status value, got %s", desiredStatus)
+			break
 		}
 
 		if try <= retries {

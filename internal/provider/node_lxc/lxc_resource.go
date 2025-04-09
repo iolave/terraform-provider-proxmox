@@ -570,12 +570,14 @@ func (r *LXCResource) Update(ctx context.Context, req resource.UpdateRequest, re
 				Node: state.Node.ValueString(),
 				ID:   int(state.VMID.ValueInt64()),
 			})
+			break
 		case string(pve.LXC_STATUS_RUNNING):
 			_, err = r.client.LXC.Stop(pve.LXCStopRequest{
 				Node:             state.Node.ValueString(),
 				ID:               int(state.VMID.ValueInt64()),
 				OverruleShutdown: 1,
 			})
+			break
 		}
 
 		if err != nil {
