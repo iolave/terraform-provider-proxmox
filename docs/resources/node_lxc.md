@@ -3,12 +3,12 @@
 page_title: "proxmox_node_lxc Resource - proxmox"
 subcategory: ""
 description: |-
-  Node lxc resource
+  LXC resource
 ---
 
 # proxmox_node_lxc (Resource)
 
-Node lxc resource
+LXC resource
 
 
 

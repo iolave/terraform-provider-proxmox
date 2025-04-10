@@ -1,4 +1,4 @@
-package nodelxc
+package lxc
 
 import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"

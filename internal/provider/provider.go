@@ -6,7 +6,6 @@ import (
 	"strconv"
 	"terraform-provider-proxmox/internal/provider/lxc"
 	nodefirewall "terraform-provider-proxmox/internal/provider/node_firewall"
-	nodelxc "terraform-provider-proxmox/internal/provider/node_lxc"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -354,7 +353,7 @@ func (p *proxmoxProvider) Resources(_ context.Context) []func() resource.Resourc
 	return []func() resource.Resource{
 		nodefirewall.NewRulesResource,
 		nodefirewall.NewRuleResource,
-		nodelxc.NewLXCResource,
+		lxc.NewLXCResource,
 		lxc.NewLXCExecResource,
 	}
 }

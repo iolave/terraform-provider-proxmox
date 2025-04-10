@@ -3,7 +3,6 @@ package lxc
 import (
 	"context"
 	"fmt"
-	nodelxc "terraform-provider-proxmox/internal/provider/node_lxc"
 
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -44,11 +43,11 @@ func (r *LXCExecResource) Schema(ctx context.Context, req resource.SchemaRequest
 		Description:         DESC_RSRC_LXC_EXEC,
 		Attributes: map[string]schema.Attribute{
 			"id": schema.Int64Attribute{
-				Description: nodelxc.DESC_LXC_ID,
+				Description: DESC_LXC_ID,
 				Required:    true,
 			},
 			"cmds": schema.ListAttribute{
-				Description: nodelxc.DESC_LXC_CMDS,
+				Description: DESC_LXC_CMDS,
 				ElementType: types.StringType,
 				Optional:    true,
 				PlanModifiers: []planmodifier.List{
@@ -90,7 +89,7 @@ func (r *LXCExecResource) Create(ctx context.Context, req resource.CreateRequest
 
 	vmid := int(data.VMID.ValueInt64())
 
-	if err := nodelxc.RunLXCCommands(ctx, r.client, vmid, data.CMDs); err != nil {
+	if err := runLXCCommands(ctx, r.client, vmid, data.CMDs); err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Failed to run commands inside lxc , got error: %s", err))
 		return
 	}

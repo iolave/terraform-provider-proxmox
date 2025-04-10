@@ -1,4 +1,4 @@
-package nodelxc
+package lxc
 
 import (
 	"context"
@@ -232,13 +232,13 @@ type LXCResourceModel struct {
 }
 
 func (r *LXCResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
-	name := "node_lxc"
+	name := "lxc"
 	resp.TypeName = fmt.Sprintf("%s_%s", req.ProviderTypeName, name)
 }
 
 func (r *LXCResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: "Node lxc resource",
+		MarkdownDescription: "LXC resource",
 		Description:         DESC_LXC,
 		Attributes:          newLXCResourceAttrs(),
 		Blocks: map[string]schema.Block{
@@ -391,7 +391,7 @@ func (r *LXCResource) Create(ctx context.Context, req resource.CreateRequest, re
 			return
 		}
 
-		tflog.Info(ctx, "proxmox_lxc_create_computed_ips", map[string]any{"networks": newLXCNetsResourceModel(ctx, computedNets)})
+		tflog.Info(ctx, "proxmox_lxc_read_computed_ips", map[string]any{"networks": newLXCNetsResourceModel(ctx, computedNets)})
 		data.Networks = computedNets
 		resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 	}
@@ -425,7 +425,7 @@ func (r *LXCResource) Create(ctx context.Context, req resource.CreateRequest, re
 		}
 
 		// run commands
-		if err := RunLXCCommands(ctx, r.client, vmid, data.CMDs); err != nil {
+		if err := runLXCCommands(ctx, r.client, vmid, data.CMDs); err != nil {
 			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Failed to run commands inside lxc , got error: %s", err))
 			if err := deleteLXC(
 				ctx,

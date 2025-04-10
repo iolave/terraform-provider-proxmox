@@ -1,4 +1,4 @@
-package nodelxc
+package lxc
 
 import (
 	"context"
@@ -175,7 +175,7 @@ func newLXCNetsResourceModel(ctx context.Context, obj []types.Object) []LXCNetRe
 	return nets
 }
 
-func RunLXCCommands(
+func runLXCCommands(
 	ctx context.Context,
 	c *pve.PVE,
 	vmid int,
