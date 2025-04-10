@@ -425,7 +425,7 @@ func (r *LXCResource) Create(ctx context.Context, req resource.CreateRequest, re
 		}
 
 		// run commands
-		if err := runLXCCommands(ctx, r.client, vmid, data.CMDs); err != nil {
+		if err := RunLXCCommands(ctx, r.client, vmid, data.CMDs); err != nil {
 			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Failed to run commands inside lxc , got error: %s", err))
 			if err := deleteLXC(
 				ctx,

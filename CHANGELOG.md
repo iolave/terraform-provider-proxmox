@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [unreleased]
 ### Added
 - proxmox_node_lxc.nameserver property.
+- proxmox_lxc_exec resource.
 
 ### Removed
 - Windows arm support.

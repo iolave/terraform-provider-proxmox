@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"strconv"
+	"terraform-provider-proxmox/internal/provider/lxc"
 	nodefirewall "terraform-provider-proxmox/internal/provider/node_firewall"
 	nodelxc "terraform-provider-proxmox/internal/provider/node_lxc"
 
@@ -354,5 +355,6 @@ func (p *proxmoxProvider) Resources(_ context.Context) []func() resource.Resourc
 		nodefirewall.NewRulesResource,
 		nodefirewall.NewRuleResource,
 		nodelxc.NewLXCResource,
+		lxc.NewLXCExecResource,
 	}
 }

@@ -165,7 +165,7 @@ func computeLXCNetIPs(
 	return nil, fmt.Errorf("Unable to compute all ifaces ips after %d retries", ipRetries)
 }
 
-func runLXCCommands(
+func RunLXCCommands(
 	ctx context.Context,
 	c *pve.PVE,
 	vmid int,
