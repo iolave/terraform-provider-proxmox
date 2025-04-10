@@ -76,6 +76,10 @@ github.com/hashicorp/yamux v0.1.1 h1:yrQxtgseBDrq9Y652vSRDvsKCJKOUD+GzTS4Y0Y8pvE
 github.com/hashicorp/yamux v0.1.1/go.mod h1:CtWFDAQgb7dxtzFs4tWbplKIe2jSi3+5vKbgIO0SLnQ=
 github.com/iolave/go-proxmox v0.6.2-0.20250321125106-7937681ad879 h1:nH2bAXA1ZcBt2CPGyzEQBySRt9MGNBHpZd/hhrWpXnI=
 github.com/iolave/go-proxmox v0.6.2-0.20250321125106-7937681ad879/go.mod h1:FR01R5rdMT/KsTrQUUfNg2xUQPBoR+sBz4b2kwSBfY8=
+github.com/iolave/go-proxmox v0.6.2-0.20250410154004-e699e624c63f h1:Tkd4ooPKG63aR87HC3IiMG29+MXWJJnotZ8NL2gy0WI=
+github.com/iolave/go-proxmox v0.6.2-0.20250410154004-e699e624c63f/go.mod h1:FR01R5rdMT/KsTrQUUfNg2xUQPBoR+sBz4b2kwSBfY8=
+github.com/iolave/go-proxmox v0.6.2-0.20250410155631-fbad1fd2c5bc h1:CCBAmMGWpRkxN5fusDQuF2aXqKJ9Fca1+DchrxEV0FE=
+github.com/iolave/go-proxmox v0.6.2-0.20250410155631-fbad1fd2c5bc/go.mod h1:FR01R5rdMT/KsTrQUUfNg2xUQPBoR+sBz4b2kwSBfY8=
 github.com/jhump/protoreflect v1.15.1 h1:HUMERORf3I3ZdX05WaQ6MIpd/NJ434hTp5YiKgfCL6c=
 github.com/jhump/protoreflect v1.15.1/go.mod h1:jD/2GMKKE6OqX8qTjhADU1e6DShO+gavG9e0Q693nKo=
 github.com/justinas/alice v1.2.0 h1:+MHSA/vccVCF4Uq37S42jwlkvI2Xzl7zTPCN5BnZNVo=

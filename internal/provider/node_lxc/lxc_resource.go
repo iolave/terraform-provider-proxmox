@@ -2,7 +2,6 @@ package nodelxc
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"time"
 
@@ -392,6 +391,7 @@ func (r *LXCResource) Create(ctx context.Context, req resource.CreateRequest, re
 			return
 		}
 
+		tflog.Info(ctx, "proxmox_lxc_create_computed_ips", map[string]any{"networks": newLXCNetsResourceModel(ctx, computedNets)})
 		data.Networks = computedNets
 		resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 	}
@@ -480,89 +480,33 @@ func (r *LXCResource) Read(ctx context.Context, req resource.ReadRequest, resp *
 		return
 	}
 
+	vmid := int(data.VMID.ValueInt64())
+	node := data.Node.ValueString()
+
 	desiredStatus := data.Status.ValueString()
 
-	// If applicable, this is a great opportunity to initialize any necessary
-	// provider client data and make a call using it.
-	remoteData, err := r.client.LXC.GetAll(
-		data.Node.ValueString(),
-	)
+	remoteData, err := r.client.LXC.GetByID(node, vmid)
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read node lxc, got error: %s", err))
 		return
-	}
-
-	status := ""
-	for _, lxc := range remoteData {
-		if lxc.VMID != int(data.VMID.ValueInt64()) {
-			continue
-		}
-		status = string(lxc.Status)
-		break
-	}
-
-	if status == "" {
-		err := fmt.Errorf("node lxc with id %d not found", data.VMID.ValueInt64())
-		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read node lxc, got error: %s", err))
+	} else if remoteData == nil {
+		msg := fmt.Sprintf("LXC %d not found in node %s, maybe it was deleted. Try removing it manually from the state", vmid, node)
+		resp.Diagnostics.AddError("Client Error", msg)
 		return
 	}
-	data.Status = types.StringValue(status)
 
-	networksCopy := make([]types.Object, len(data.Networks))
-	copy(networksCopy, data.Networks)
+	data.Status = types.StringValue(string(remoteData.Status))
+	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+
 	if desiredStatus == string(pve.LXC_STATUS_RUNNING) {
-		ipRetries := 3
-		ipSleepTime := time.Second * 15
-		for i := 0; i < ipRetries; i++ {
-			time.Sleep(ipSleepTime)
-			computedNets := []LXCNetResourceModel{}
-			ifaces, err := r.client.LXC.GetInterfaces(data.Node.String(), int(data.VMID.ValueInt64()))
-			if err != nil {
-				tflog.Error(ctx, "failed to retrieve lxc ifaces", map[string]any{"error": err.Error(), "try": i})
-				continue
-			}
-
-			data.Networks = []types.Object{}
-			for _, obj := range networksCopy {
-				net := LXCNetResourceModel{}
-				net.LoadFromObject(ctx, obj)
-
-				var remoteIface pve.GetLxcInterfaceResponse
-				for _, iface := range ifaces {
-					if iface.Name != net.Name {
-						continue
-					}
-					remoteIface = iface
-				}
-				if remoteIface.IPv4 == "" {
-					tflog.Error(ctx, "lxc iface does not have an assigned ip", map[string]any{"try": i})
-					break
-				}
-				net.ComputedIP = &remoteIface.IPv4
-				computedNets = append(computedNets, net)
-			}
-			if len(data.Networks) != len(computedNets) {
-				err := errors.New("Unable to compute all ifaces ips")
-				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to create node lxc, got error: %s", err))
-				return
-			}
-
-			data.Networks = []types.Object{}
-			for i, netPosObj := range networksCopy {
-				netPosModel := LXCNetResourceModel{}
-				netPosModel.LoadFromObject(ctx, netPosObj)
-				net := computedNets[i]
-				tflog.Debug(ctx, "got network with computed ip", map[string]any{"try": i, "network": net, "pos": i})
-
-				data.Networks = append(data.Networks, net.ToObject())
-			}
-
-			for i, obj := range data.Networks {
-				net := LXCNetResourceModel{}
-				net.LoadFromObject(ctx, obj)
-				tflog.Debug(ctx, "updated data network", map[string]any{"try": i, "network": net, "pos": i})
-			}
+		computedNets, err := computeLXCNetIPs(ctx, r.client, node, vmid, data.Networks)
+		if err != nil {
+			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read lxc ifaces ips, got error: %s", err.Error()))
 		}
+
+		tflog.Info(ctx, "proxmox_lxc_read_computed_ips", map[string]any{"networks": newLXCNetsResourceModel(ctx, computedNets)})
+		data.Networks = computedNets
+		resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 	}
 
 	// Save updated data into Terraform state

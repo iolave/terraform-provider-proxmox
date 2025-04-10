@@ -165,6 +165,16 @@ func computeLXCNetIPs(
 	return nil, fmt.Errorf("Unable to compute all ifaces ips after %d retries", ipRetries)
 }
 
+func newLXCNetsResourceModel(ctx context.Context, obj []types.Object) []LXCNetResourceModel {
+	nets := []LXCNetResourceModel{}
+	for _, netObj := range obj {
+		net := LXCNetResourceModel{}
+		net.LoadFromObject(ctx, netObj)
+		nets = append(nets, net)
+	}
+	return nets
+}
+
 func RunLXCCommands(
 	ctx context.Context,
 	c *pve.PVE,
