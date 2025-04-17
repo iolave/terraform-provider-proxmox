@@ -21,13 +21,16 @@ import (
 var _ resource.Resource = &LXCResource{}
 var _ resource.ResourceWithImportState = &LXCResource{}
 
-func NewLXCResource() resource.Resource {
-	return &LXCResource{}
+func NewLXCResource(name string) func() resource.Resource {
+	return func() resource.Resource {
+		return &LXCResource{name: name}
+	}
 }
 
 // LXCResource defines the resource implementation.
 type LXCResource struct {
 	client *pve.PVE
+	name   string
 }
 
 type LXCFeaturesResourceModel struct {
@@ -232,8 +235,7 @@ type LXCResourceModel struct {
 }
 
 func (r *LXCResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
-	name := "lxc"
-	resp.TypeName = fmt.Sprintf("%s_%s", req.ProviderTypeName, name)
+	resp.TypeName = fmt.Sprintf("%s_%s", req.ProviderTypeName, r.name)
 }
 
 func (r *LXCResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
@@ -257,6 +259,10 @@ func (r *LXCResource) Schema(ctx context.Context, req resource.SchemaRequest, re
 				},
 			},
 		},
+	}
+
+	if r.name == "node_lxc" {
+		resp.Schema.DeprecationMessage = "Use proxmox_lxc resource instead. This resource will be removed in the next major version of the provider."
 	}
 }
 
