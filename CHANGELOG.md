@@ -5,9 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [unreleased]
+## [v0.1.6] - 2025-04-16
 ### Added
 - proxmox_node_lxc resource added back for compatibility with older versions of the provider.
+
+### Changed
+- changing proxmox_lxc.networks no longer trigger a re-creation.
 
 ## [v0.1.5] - 2025-04-10
 ### Added

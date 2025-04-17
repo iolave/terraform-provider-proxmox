@@ -3,7 +3,6 @@ package lxc
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -522,65 +521,59 @@ func (r *LXCResource) Read(ctx context.Context, req resource.ReadRequest, resp *
 // TODO: while lxc endpoints are implemented and not every property
 // requires a replace, only do a start/stop.
 func (r *LXCResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	var data LXCResourceModel
+	var plan LXCResourceModel
 	var state LXCResourceModel
 
 	// Read Terraform plan data into the model
-	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
 	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
-	data.VMID = types.Int64Value(state.VMID.ValueInt64())
+
+	node := state.Node.ValueString()
+	vmid := int(state.VMID.ValueInt64())
+	status := state.Status.ValueString()
+
+	tflog.Info(ctx, "proxmox_lxc_update_started", map[string]any{"node": node, "vmid": vmid})
 
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	// Update status if neccessary
-	if data.Status.ValueString() != state.Status.ValueString() {
-		var err error
-		switch state.Status.ValueString() {
-		case string(pve.LXC_STATUS_STOPPED):
-			_, err = r.client.LXC.Start(pve.LXCStartRequest{
-				Node: state.Node.ValueString(),
-				ID:   int(state.VMID.ValueInt64()),
-			})
-			break
-		case string(pve.LXC_STATUS_RUNNING):
-			_, err = r.client.LXC.Stop(pve.LXCStopRequest{
-				Node:             state.Node.ValueString(),
-				ID:               int(state.VMID.ValueInt64()),
-				OverruleShutdown: 1,
-			})
-			break
-		}
-
-		if err != nil {
-			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to update node lxc, got error: %s", err))
-		}
-
-		// check status in proxmox
-		for true {
-			time.Sleep(time.Second * 2)
-			remoteStatus, err := r.client.LXC.GetStatus(
-				state.Node.ValueString(),
-				int(state.VMID.ValueInt64()),
-			)
-			if err != nil {
-				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to update node lxc, got error: %s", err))
-				return
-			}
-			if remoteStatus.Status == state.Status.ValueString() {
-				continue
-			}
-			break
-		}
+	if err := updateLXCStatus(ctx, r.client, node, vmid, string(pve.LXC_STATUS_STOPPED)); err != nil {
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to stop lxc, got error: %s", err))
+		return
 	}
 
-	//err := errors.New("unable to update cuz proxmox client have not implemented some features")
-	//resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to update node lxc, got error: %s", err))
-	//return
+	tflog.Info(ctx, "proxmox_lxc_update_networks", map[string]any{
+		"node":          node,
+		"vmid":          vmid,
+		"planNetworks":  newLXCNetsResourceModel(ctx, plan.Networks),
+		"stateNetworks": newLXCNetsResourceModel(ctx, state.Networks),
+	})
+	if err := r.client.LXC.Update(pve.UpdateLxcRequest{
+		Node: state.Node.ValueString(),
+		VMID: vmid,
+		Net:  newPVELXCNets(ctx, plan.Networks),
+	}); err != nil {
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to update lxc interfaces, got error: %s", err))
+		return
+	}
+	if err := updateLXCStatus(ctx, r.client, node, vmid, status); err != nil {
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to update lxc status, got error: %s", err))
+		return
+	}
+	computedNets, err := computeLXCNetIPs(ctx, r.client, node, vmid, plan.Networks)
+	if err != nil {
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to read lxc ifaces ips, got error: %s", err.Error()))
+		return
+	}
+	tflog.Info(ctx, "proxmox_lxc_update_computed_ips", map[string]any{
+		"node":     node,
+		"vmid":     vmid,
+		"networks": newLXCNetsResourceModel(ctx, computedNets),
+	})
+	state.Networks = computedNets
 
-	// Save updated data into Terraform state
-	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
 
 func (r *LXCResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {

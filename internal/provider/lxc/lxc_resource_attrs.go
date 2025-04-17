@@ -416,77 +416,41 @@ func newLXCNetResourceAttrs() map[string]schema.Attribute {
 	return map[string]schema.Attribute{
 		"name": schema.StringAttribute{
 			Required: true,
-			PlanModifiers: []planmodifier.String{
-				stringplanmodifier.RequiresReplace(),
-			},
 		},
 		"bridge": schema.StringAttribute{
 			Optional: true,
-			PlanModifiers: []planmodifier.String{
-				stringplanmodifier.RequiresReplace(),
-			},
 		},
 		"firewall": schema.BoolAttribute{
 			Optional: true,
 			Computed: true,
 			Default:  booldefault.StaticBool(DFLT_LXC_NET_FW),
-			PlanModifiers: []planmodifier.Bool{
-				boolplanmodifier.RequiresReplace(),
-			},
 		},
 		"gateway": schema.StringAttribute{
 			Optional: true,
-			PlanModifiers: []planmodifier.String{
-				stringplanmodifier.RequiresReplace(),
-			},
 		},
 		"gateway6": schema.StringAttribute{
 			Optional: true,
-			PlanModifiers: []planmodifier.String{
-				stringplanmodifier.RequiresReplace(),
-			},
 		},
 		"hw_address": schema.StringAttribute{
 			Optional: true,
-			PlanModifiers: []planmodifier.String{
-				stringplanmodifier.RequiresReplace(),
-			},
 		},
 		"ip": schema.StringAttribute{
 			Optional: true,
-			PlanModifiers: []planmodifier.String{
-				stringplanmodifier.RequiresReplaceIfConfigured(),
-			},
 		},
 		"ip6": schema.StringAttribute{
 			Optional: true,
-			PlanModifiers: []planmodifier.String{
-				stringplanmodifier.RequiresReplace(),
-			},
 		},
 		"link_down": schema.BoolAttribute{
 			Optional: true,
-			PlanModifiers: []planmodifier.Bool{
-				boolplanmodifier.RequiresReplace(),
-			},
 		},
 		"mtu": schema.Int64Attribute{
 			Optional: true,
-			PlanModifiers: []planmodifier.Int64{
-				int64planmodifier.RequiresReplace(),
-			},
 		},
 		"rate": schema.Int64Attribute{
 			Optional: true,
-			PlanModifiers: []planmodifier.Int64{
-				int64planmodifier.RequiresReplace(),
-			},
 		},
 		"tag": schema.Int64Attribute{
 			Optional: true,
-			PlanModifiers: []planmodifier.Int64{
-				int64planmodifier.RequiresReplace(),
-			},
 		},
 		"computed_ip": schema.StringAttribute{
 			Description: DESC_LXC_IP,
