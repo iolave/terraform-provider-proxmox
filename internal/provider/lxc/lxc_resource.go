@@ -3,7 +3,6 @@ package lxc
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -522,57 +521,25 @@ func (r *LXCResource) Read(ctx context.Context, req resource.ReadRequest, resp *
 // TODO: while lxc endpoints are implemented and not every property
 // requires a replace, only do a start/stop.
 func (r *LXCResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	var data LXCResourceModel
+	var plan LXCResourceModel
 	var state LXCResourceModel
 
 	// Read Terraform plan data into the model
-	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
 	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
-	data.VMID = types.Int64Value(state.VMID.ValueInt64())
 
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	// Update status if neccessary
-	if data.Status.ValueString() != state.Status.ValueString() {
-		var err error
-		switch state.Status.ValueString() {
-		case string(pve.LXC_STATUS_STOPPED):
-			_, err = r.client.LXC.Start(pve.LXCStartRequest{
-				Node: state.Node.ValueString(),
-				ID:   int(state.VMID.ValueInt64()),
-			})
-			break
-		case string(pve.LXC_STATUS_RUNNING):
-			_, err = r.client.LXC.Stop(pve.LXCStopRequest{
-				Node:             state.Node.ValueString(),
-				ID:               int(state.VMID.ValueInt64()),
-				OverruleShutdown: 1,
-			})
-			break
-		}
-
-		if err != nil {
-			resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to update node lxc, got error: %s", err))
-		}
-
-		// check status in proxmox
-		for true {
-			time.Sleep(time.Second * 2)
-			remoteStatus, err := r.client.LXC.GetStatus(
-				state.Node.ValueString(),
-				int(state.VMID.ValueInt64()),
-			)
-			if err != nil {
-				resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to update node lxc, got error: %s", err))
-				return
-			}
-			if remoteStatus.Status == state.Status.ValueString() {
-				continue
-			}
-			break
-		}
+	if err := r.client.LXC.Update(pve.UpdateLxcRequest{
+		Node: state.Node.ValueString(),
+		Net:  newPVELXCNets(ctx, plan.Networks),
+	}); err != nil {
+		resp.Diagnostics.AddError("Client Error", fmt.Sprintf("Unable to update lxc interfaces, got error: %s", err))
+		return
+	} else {
+		state.Networks = plan.Networks
 	}
 
 	//err := errors.New("unable to update cuz proxmox client have not implemented some features")
@@ -580,7 +547,7 @@ func (r *LXCResource) Update(ctx context.Context, req resource.UpdateRequest, re
 	//return
 
 	// Save updated data into Terraform state
-	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
 
 func (r *LXCResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {

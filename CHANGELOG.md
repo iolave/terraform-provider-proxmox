@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - proxmox_node_lxc resource added back for compatibility with older versions of the provider.
 
+### Changed
+- proxmox_lxc.networks no longer trigger a recreation.
+
 ## [v0.1.5] - 2025-04-10
 ### Added
 - proxmox_node_lxc.nameserver property.
