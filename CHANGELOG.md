@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ### Added
 - proxmox_lxc_template resource.
+- proxmox_lxc_linked_clone resource.
 
 ### Changed
 - proxmox_lxc.cmds and proxmox_lxc_exec.cmds properties are now sensitive values.

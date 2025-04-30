@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/iolave/go-proxmox/pkg/pve"
@@ -295,4 +296,51 @@ func deleteLXC(
 		break
 	}
 	return nil
+}
+
+func computeLXCCloneNetIPs(
+	c *pve.PVE,
+	node string,
+	vmid int,
+) (types.List, error) {
+	ipRetries := 5
+	ipSleepTime := time.Second * 15
+	for i := 0; i < ipRetries; i++ {
+		time.Sleep(ipSleepTime)
+
+		// retrieve lxc interfaces of running lxc
+		// and store them in the map below for easy
+		// access through the iface name.
+		ifaces, err := c.LXC.GetInterfaces(node, vmid)
+		if err != nil {
+			continue
+		}
+
+		// Read configured networks
+		computedNets := []LXCCloneNetResourceModel{}
+		for _, i := range ifaces {
+			net := LXCCloneNetResourceModel{}
+			net.LoadFromPVE(i)
+
+			computedNets = append(computedNets, net)
+		}
+
+		values := []attr.Value{}
+		for _, i := range computedNets {
+			values = append(values, i.ToObject())
+		}
+
+		return types.ListValueMust(
+			types.ObjectType{
+				AttrTypes: map[string]attr.Type{
+					"name":  types.StringType,
+					"ip_v4": types.StringType,
+				},
+			},
+			values,
+		), nil
+
+	}
+
+	return types.ListNull(nil), fmt.Errorf("Unable to compute all ifaces ips after %d retries", ipRetries)
 }
