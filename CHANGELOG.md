@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+### Changed
+- proxmox_lxc.cmds and proxmox_lxc_exec.cmds properties are now sensitive values.
+
 ## [v0.1.6] - 2025-04-16
 ### Added
 - proxmox_node_lxc resource added back for compatibility with older versions of the provider.
@@ -66,7 +70,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - proxmox_node_firewall_rule resource. 
 - proxmox_node_lxc resource.
 
-[unreleased]: https://github.com/iolave/terraform-provider-proxmox/compare/v0.1.5...master
+[unreleased]: https://github.com/iolave/terraform-provider-proxmox/compare/v0.1.6...master
+[v0.1.6]: https://github.com/iolave/terraform-provider-proxmox/releases/tag/v0.1.6
 [v0.1.5]: https://github.com/iolave/terraform-provider-proxmox/releases/tag/v0.1.5
 [v0.1.4]: https://github.com/iolave/terraform-provider-proxmox/releases/tag/v0.1.4
 [v0.1.3]: https://github.com/iolave/terraform-provider-proxmox/releases/tag/v0.1.3

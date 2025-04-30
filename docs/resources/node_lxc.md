@@ -22,7 +22,7 @@ LXC resource
 
 ### Optional
 
-- `cmds` (List of String) List of commands to be executed after lxc creation using bash. If any command fail, the creation will also fail.
+- `cmds` (List of String, Sensitive) List of commands to be executed after lxc creation using bash. If any command fail, the creation will also fail.
 - `features` (Block, Optional) Allow containers access to advanced features. (see [below for nested schema](#nestedblock--features))
 - `hostname` (String) Set a host name for the container.
 - `id` (Number) The (unique) ID of the VM.

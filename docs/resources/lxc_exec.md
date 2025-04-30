@@ -24,4 +24,4 @@ description: |-
 
 ### Optional
 
-- `cmds` (List of String) List of commands to be executed after lxc creation using bash. If any command fail, the creation will also fail.
+- `cmds` (List of String, Sensitive) List of commands to be executed after lxc creation using bash. If any command fail, the creation will also fail.

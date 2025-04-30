@@ -325,6 +325,7 @@ func newLXCResourceAttrs() map[string]schema.Attribute {
 			Description: DESC_LXC_CMDS,
 			ElementType: types.StringType,
 			Optional:    true,
+			Sensitive:   true,
 			PlanModifiers: []planmodifier.List{
 				listplanmodifier.RequiresReplace(),
 			},

@@ -50,6 +50,7 @@ func (r *LXCExecResource) Schema(ctx context.Context, req resource.SchemaRequest
 				Description: DESC_LXC_CMDS,
 				ElementType: types.StringType,
 				Optional:    true,
+				Sensitive:   true,
 				PlanModifiers: []planmodifier.List{
 					listplanmodifier.RequiresReplace(),
 				},
