@@ -52,6 +52,16 @@ func newPVELXCNets(ctx context.Context, objs []types.Object) []pve.LxcNet {
 	return nets
 }
 
+func newPVELXCTplNets(ctx context.Context, objs []types.Object) []pve.LxcNet {
+	nets := []pve.LxcNet{}
+	for _, obj := range objs {
+		net := LXCTplNetResourceModel{}
+		net.LoadFromObject(ctx, obj)
+		nets = append(nets, net.ToPVELXCNet())
+	}
+	return nets
+}
+
 func updateLXCStatus(
 	ctx context.Context,
 	c *pve.PVE,

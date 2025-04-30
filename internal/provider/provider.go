@@ -356,5 +356,6 @@ func (p *proxmoxProvider) Resources(_ context.Context) []func() resource.Resourc
 		lxc.NewLXCResource("lxc"),
 		lxc.NewLXCResource("node_lxc"),
 		lxc.NewLXCExecResource,
+		lxc.NewLXCTplResource("lxc_template"),
 	}
 }
