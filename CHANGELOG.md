@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [unreleased]
+## [0.1.8] - 2025-07-22
 ### Fixed
 - proxmox_lxc_template import.
 - proxmox_lxc_linked_clone import.
@@ -82,7 +82,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - proxmox_node_firewall_rule resource. 
 - proxmox_node_lxc resource.
 
-[unreleased]: https://github.com/iolave/terraform-provider-proxmox/compare/v0.1.7...master
+[unreleased]: https://github.com/iolave/terraform-provider-proxmox/compare/v0.1.8...master
+[v0.1.8]: https://github.com/iolave/terraform-provider-proxmox/releases/tag/v0.1.8
 [v0.1.7]: https://github.com/iolave/terraform-provider-proxmox/releases/tag/v0.1.7
 [v0.1.6]: https://github.com/iolave/terraform-provider-proxmox/releases/tag/v0.1.6
 [v0.1.5]: https://github.com/iolave/terraform-provider-proxmox/releases/tag/v0.1.5
