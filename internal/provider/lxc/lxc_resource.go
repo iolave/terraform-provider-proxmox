@@ -3,9 +3,9 @@ package lxc
 import (
 	"context"
 	"fmt"
+	"strconv"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
-	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/objectplanmodifier"
@@ -598,7 +598,20 @@ func (r *LXCResource) Delete(ctx context.Context, req resource.DeleteRequest, re
 	tflog.Trace(ctx, "deleted an lxc resource")
 }
 
-// TODO: implement
 func (r *LXCResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
+	id, err := strconv.Atoi(req.ID)
+	if err != nil {
+		resp.Diagnostics.AddError("Import Error", fmt.Sprintf("Unable to import lxc, got error: %s", err))
+		return
+	}
+
+	state := LXCResourceModel{
+		VMID: basetypes.NewInt64Value(int64(id)),
+	}
+
+	diags := resp.State.Set(ctx, &state)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 }
