@@ -3,6 +3,7 @@ package lxc
 import (
 	"context"
 	"fmt"
+	"strconv"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -397,7 +398,21 @@ func (r *LXCLinkedCloneResource) Delete(ctx context.Context, req resource.Delete
 }
 
 func (r *LXCLinkedCloneResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
+	id, err := strconv.Atoi(req.ID)
+	if err != nil {
+		resp.Diagnostics.AddError("Import Error", fmt.Sprintf("Unable to import lxc linked clone, got error: %s", err))
+		return
+	}
+
+	state := LXCLinkedCloneResourceModel{
+		VMID: basetypes.NewInt64Value(int64(id)),
+	}
+
+	diags := resp.State.Set(ctx, &state)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 }
 
 type LXCCloneNetResourceModel struct {
