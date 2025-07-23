@@ -320,7 +320,6 @@ func (r *LXCTplResource) Delete(ctx context.Context, req resource.DeleteRequest,
 	}
 }
 
-// TODO: implement
 func (r *LXCTplResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	id, err := strconv.Atoi(req.ID)
 	if err != nil {

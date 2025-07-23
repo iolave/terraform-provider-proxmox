@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - proxmox_lxc_template import.
 - proxmox_lxc_linked_clone import.
 - proxmox_lxc_exec import.
+- proxmox_lxc_template import.
 
 ## [0.1.7] - 2025-04-30
 ### Added
