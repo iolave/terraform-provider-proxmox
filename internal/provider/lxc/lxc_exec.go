@@ -3,12 +3,14 @@ package lxc
 import (
 	"context"
 	"fmt"
+	"strconv"
 
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 	"github.com/iolave/go-proxmox/pkg/pve"
 )
 
@@ -107,5 +109,22 @@ func (r *LXCExecResource) Update(ctx context.Context, req resource.UpdateRequest
 func (r *LXCExecResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
 }
 
+// TODO: Check if the LXC exists
 func (r *LXCExecResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	var state LXCExecResourceModel
+
+	id, err := strconv.Atoi(req.ID)
+	if err != nil {
+		resp.Diagnostics.AddError("Import Error", fmt.Sprintf("Unable to import lxc linked clone, got error: %s", err))
+		return
+	}
+
+	state.VMID = basetypes.NewInt64Value(int64(id))
+	state.CMDs = []types.String{}
+
+	diags := resp.State.Set(ctx, &state)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 }
