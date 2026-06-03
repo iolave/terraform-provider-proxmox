@@ -4,8 +4,10 @@ import (
 	"context"
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/objectplanmodifier"
@@ -321,15 +323,37 @@ func (r *LXCTplResource) Delete(ctx context.Context, req resource.DeleteRequest,
 }
 
 func (r *LXCTplResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	id, err := strconv.Atoi(req.ID)
+	splittedId := strings.Split(req.ID, ":")
+	if len(splittedId) != 2 {
+		resp.Diagnostics.AddError("Import Error", fmt.Sprintf("Unable to import lxc template, got error: invalid id format, want <node>:<vmid>, got: %s", req.ID))
+		return
+	}
+
+	node := splittedId[0]
+	vmid, err := strconv.Atoi(splittedId[1])
 	if err != nil {
 		resp.Diagnostics.AddError("Import Error", fmt.Sprintf("Unable to import lxc template, got error: %s", err))
 		return
 	}
 
-	state := LXCTplResourceModel{
-		VMID: basetypes.NewInt64Value(int64(id)),
+	lxc, err := r.client.LXC.GetByID(node, vmid)
+	if err != nil {
+		resp.Diagnostics.AddError("Import Error", fmt.Sprintf("Unable to import lxc template, got error: %s", err))
+		return
 	}
+
+	if lxc == nil {
+		resp.Diagnostics.AddError("Import Error", "Unable to import lxc template, got error: lxc not found")
+		return
+	}
+	// TODO: check if vmid is a template
+
+	resource.ImportStatePassthroughID(ctx, path.Root("node"), req, resp)
+	state := LXCTplResourceModel{}
+	resp.State.Get(ctx, &state)
+	state.Node = basetypes.NewStringValue(node)
+	state.VMID = basetypes.NewInt64Value(int64(vmid))
+	state.OSTemplate = basetypes.NewStringValue("")
 
 	diags := resp.State.Set(ctx, &state)
 	resp.Diagnostics.Append(diags...)
